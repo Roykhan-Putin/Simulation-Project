@@ -1130,10 +1130,34 @@ function exportCSV() {
   // ==========================================
   // FILE 3: DATA META (Untuk KPI Header)
   // ==========================================
+  // Hitung Avg Lq, Lq Maks, Avg Wq dari data wahana
+  let sumLq = 0, maxLq = 0, sumWq = 0, rideCount = 0;
+  for (let ride of simMap.rides) {
+      let rName = ride.rideName || ride.name;
+      let stats = rideDailyStats[rName];
+      if (!stats) continue;
+      let totalNaik = stats.totalNaik || 0;
+      let openMins = (ride.openHour || 10) * 60 + (ride.openMinute || 0);
+      let closeMins = (ride.closeHour || 18) * 60 + (ride.closeMinute || 45);
+      let opMins = Math.max(1, closeMins - openMins);
+      let lambda = totalNaik / opMins;
+      let avgQ = totalNaik > 0 ? (stats.sumQueue / totalNaik) : 0;
+      let lq = lambda * avgQ;
+      sumLq += lq;
+      if (lq > maxLq) maxLq = lq;
+      sumWq += avgQ;
+      rideCount++;
+  }
+  let avgLq = rideCount > 0 ? sumLq / rideCount : 0;
+  let avgWq = rideCount > 0 ? sumWq / rideCount : 0;
+
   let tableMeta = new p5.Table();
   tableMeta.addColumn("Total Pengunjung");
   tableMeta.addColumn("Avg Rides");
   tableMeta.addColumn("Avg Queue Global (m)");
+  tableMeta.addColumn("Avg Wq (m)");
+  tableMeta.addColumn("Avg Lq");
+  tableMeta.addColumn("Lq Maks");
   tableMeta.addColumn("Satisfaction Score (%)");
   tableMeta.addColumn("Global Rho");
   tableMeta.addColumn("Total Batal Masuk");
@@ -1142,6 +1166,9 @@ function exportCSV() {
   rowMeta.set("Total Pengunjung", totalVisitors);
   rowMeta.set("Avg Rides", rawAvgRides.toFixed(2));
   rowMeta.set("Avg Queue Global (m)", rawAvgQueue.toFixed(2));
+  rowMeta.set("Avg Wq (m)", avgWq.toFixed(3));
+  rowMeta.set("Avg Lq", avgLq.toFixed(3));
+  rowMeta.set("Lq Maks", maxLq.toFixed(3));
   rowMeta.set("Satisfaction Score (%)", satisfactionScore);
   rowMeta.set("Global Rho", avgDailyRho.toFixed(3));
   rowMeta.set("Total Batal Masuk", totalAgtsLeft);
@@ -1861,21 +1888,6 @@ function addAgents() {
       } else {
         numAdults = Math.random() < 0.5 ? 1 : 2;
         numChildren = 4 - numAdults;
-      }
-    }
-
-    // ✅ FIX: Clamp size agar tidak melebihi sisa slot arrivalSchedule
-    // Ini memastikan totalVisitors tepat = N tanpa kelebihan
-    const remainingSlots = arrivalSchedule.length;
-    if (remainingSlots <= 0) break;
-    if (size > remainingSlots) {
-      size = remainingSlots;
-      if (type === "GROUP_FAMILY") {
-        numAdults = Math.max(1, Math.min(numAdults, size - 1));
-        numChildren = size - numAdults;
-      } else {
-        numAdults = size;
-        numChildren = 0;
       }
     }
 
