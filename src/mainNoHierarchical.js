@@ -912,6 +912,7 @@ function resetSim() {
 
   globalRhoHistory = [];
   avgdailyRho = 0;
+  currentGlobalRho = 0;
 
 
   for (const node of nodes) {
