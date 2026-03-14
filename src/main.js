@@ -14,7 +14,8 @@ let globalAgentIDCounter = 0;
 let agentExportData = []; // Array untuk menyimpan buku harian semua pengunjung yang pulang
 
 let globalRhoHistory = [];
-
+let avgDailyRho = 0;
+let currentGlobalRho = 0;
 
 let inputOpenH, inputOpenM;
 let inputCloseH, inputCloseM;
@@ -482,7 +483,7 @@ function draw() {
     // Rekam Global Rho untuk rata-rata harian (ambil tiap frame kelipatan 60 agar tidak terlalu berat)
     if (frameCount % 60 === 0 && currentHour < parkCloseHour) {
         
-        // Cegah Dilusi Data! 
+        // 🔥 PERBAIKAN: Cegah Dilusi Data! 
         // Hanya rekam nilai Rho jika ada orang di taman, ATAU masih ada jadwal kedatangan pengunjung.
         if (agents.length > 0 || arrivalSchedule.length > 0) {
             let macroMetrics = getGlobalQueueMetrics(simMap);
@@ -909,11 +910,10 @@ function resetSim() {
 
   globalAgentIDCounter = 0;
   agentExportData = [];
-  
+
   globalRhoHistory = [];
   avgDailyRho = 0;
   currentGlobalRho = 0;
-
 
   for (const node of nodes) {
     node.reset();
@@ -972,9 +972,9 @@ function toggleStats() {
   showStats = !showStats;
 }
 
-// ===================================================
-// EXPORT CSV (MENGUNDUH 3 FILE DENGAN REKAP HISTORIS)
-// ===================================================
+// ========================================================
+// 🔥 EXPORT CSV (MENGUNDUH 3 FILE DENGAN REKAP HISTORIS) 🔥
+// ========================================================
 function exportCSV() {
   isRunning = false;
 
@@ -1134,34 +1134,10 @@ function exportCSV() {
   // ==========================================
   // FILE 3: DATA META (Untuk KPI Header)
   // ==========================================
-  // Hitung Avg Lq, Lq Maks, Avg Wq dari data wahana
-  let sumLq = 0, maxLq = 0, sumWq = 0, rideCount = 0;
-  for (let ride of simMap.rides) {
-      let rName = ride.rideName || ride.name;
-      let stats = rideDailyStats[rName];
-      if (!stats) continue;
-      let totalNaik = stats.totalNaik || 0;
-      let openMins = (ride.openHour || 10) * 60 + (ride.openMinute || 0);
-      let closeMins = (ride.closeHour || 18) * 60 + (ride.closeMinute || 45);
-      let opMins = Math.max(1, closeMins - openMins);
-      let lambda = totalNaik / opMins;
-      let avgQ = totalNaik > 0 ? (stats.sumQueue / totalNaik) : 0;
-      let lq = lambda * avgQ; // Little's Law: Lq = lambda * Wq
-      sumLq += lq;
-      if (lq > maxLq) maxLq = lq;
-      sumWq += avgQ;
-      rideCount++;
-  }
-  let avgLq = rideCount > 0 ? sumLq / rideCount : 0;
-  let avgWq = rideCount > 0 ? sumWq / rideCount : 0;
-
   let tableMeta = new p5.Table();
   tableMeta.addColumn("Total Pengunjung");
   tableMeta.addColumn("Avg Rides");
   tableMeta.addColumn("Avg Queue Global (m)");
-  tableMeta.addColumn("Avg Wq (m)");
-  tableMeta.addColumn("Avg Lq");
-  tableMeta.addColumn("Lq Maks");
   tableMeta.addColumn("Satisfaction Score (%)");
   tableMeta.addColumn("Global Rho");
   tableMeta.addColumn("Total Batal Masuk");
@@ -1170,9 +1146,6 @@ function exportCSV() {
   rowMeta.set("Total Pengunjung", totalVisitors);
   rowMeta.set("Avg Rides", rawAvgRides.toFixed(2));
   rowMeta.set("Avg Queue Global (m)", rawAvgQueue.toFixed(2));
-  rowMeta.set("Avg Wq (m)", avgWq.toFixed(3));
-  rowMeta.set("Avg Lq", avgLq.toFixed(3));
-  rowMeta.set("Lq Maks", maxLq.toFixed(3));
   rowMeta.set("Satisfaction Score (%)", satisfactionScore);
   rowMeta.set("Global Rho", avgDailyRho.toFixed(3));
   rowMeta.set("Total Batal Masuk", totalAgtsLeft);
@@ -1212,7 +1185,7 @@ function drawDisplay() {
       const w = 270;
       const h = headerHeight + textHeight + graphH + padding * 2 + 10;
 
-      // KUNCI POSISI DI POJOK KIRI ATAS
+      // 🔥 KUNCI POSISI DI POJOK KIRI ATAS (Di bawah tombol Toggle Panel)
       const x = 20;
       const y = 70;
 
@@ -1314,22 +1287,23 @@ function drawStats() {
   const satisfactionScore = calculateSatisfaction(rawAvgRides, rawAvgQueue);
   const displayMinRides = minRidesRecord === Infinity ? 0 : minRidesRecord;
 
-  // =====================================================
-  // PERHITUNGAN RHO GLOBAL UNTUK DITAMPILKAN DI KARTU
-  // =====================================================
-  let currentGlobalRho = 0;
-  let avgDailyRho = 0;
-  
-  // 1. Ambil Rho Real-Time saat ini
-  let macroMetrics = getGlobalQueueMetrics(simMap);
-  if (macroMetrics) {
-      currentGlobalRho = macroMetrics.globalRho;
-  }
-  
-  // 2. Ambil Rata-rata Rho Harian (Kumulatif)
-  if (globalRhoHistory.length > 0) {
-      let sumRho = globalRhoHistory.reduce((a, b) => a + b, 0);
-      avgDailyRho = sumRho / globalRhoHistory.length;
+
+  // ==========================================================
+  // 🔥 PERHITUNGAN RHO GLOBAL UNTUK DITAMPILKAN DI KARTU 🔥
+  // Gunakan variabel global — hanya diperbarui saat simulasi berjalan
+  // ==========================================================
+  if (isRunning) {
+    // 1. Ambil Rho Real-Time saat ini
+    let macroMetrics = getGlobalQueueMetrics(simMap);
+    if (macroMetrics) {
+        currentGlobalRho = macroMetrics.globalRho;
+    }
+
+    // 2. Ambil Rata-rata Rho Harian (Kumulatif)
+    if (globalRhoHistory.length > 0) {
+        let sumRho = globalRhoHistory.reduce((a, b) => a + b, 0);
+        avgDailyRho = sumRho / globalRhoHistory.length;
+    }
   }
   // ==========================================================
 
@@ -1719,8 +1693,8 @@ function createMap() {
 
   n26.zone = 3; n26.rideCategory = "dewasa"; n26.isContinuous = false; n26.hasFastTrack = true; n26.minHeight = 0;
   n26.openHour = 10; n26.openMinute = 0; n26.closeHour = 18; n26.closeMinute = 45;
-  n26.capacity = 4; n26.minCapacity = 2; n26.runtime = 7.0; n26.isPopular = true;
-  n26.turnover = 0.5;
+  n26.capacity = 4; n26.minCapacity = 4; n26.runtime = 20.0; n26.isPopular = true;
+  n26.turnover = Math.max(5, Math.round(n26.runtime * 0.3));
 
   n27.zone = 3; n27.rideCategory = "dewasa"; n27.isContinuous = false; n27.hasFastTrack = true; n27.minHeight = 100;
   n27.openHour = 10; n27.openMinute = 0; n27.closeHour = 18; n27.closeMinute = 45;
@@ -1892,21 +1866,6 @@ function addAgents() {
       } else {
         numAdults = Math.random() < 0.5 ? 1 : 2;
         numChildren = 4 - numAdults;
-      }
-    }
-
-    // ✅ FIX: Clamp size agar tidak melebihi sisa slot arrivalSchedule
-    // Ini memastikan totalVisitors tepat = N tanpa kelebihan
-    const remainingSlots = arrivalSchedule.length;
-    if (remainingSlots <= 0) break;
-    if (size > remainingSlots) {
-      size = remainingSlots;
-      if (type === "GROUP_FAMILY") {
-        numAdults = Math.max(1, Math.min(numAdults, size - 1));
-        numChildren = size - numAdults;
-      } else {
-        numAdults = size;
-        numChildren = 0;
       }
     }
 
@@ -2205,9 +2164,9 @@ function buildFooter(parentEl) {
       <div class="pf-credits">
         <div class="pf-team">
           <span class="pf-credit-label">Tim Pengembang</span>
-          <span class="pf-credit-names">Tim Sayang Lomba Sayangg - UNAIR</span>
+          <span class="pf-credit-names">Teknik Industri — Simulasi Sistem 2025</span>
         </div>
-        <div class="pf-copy">© 2026 Theme Park Sim. All rights reserved.</div>
+        <div class="pf-copy">© 2025 Theme Park Sim. All rights reserved.</div>
       </div>
     </div>
   `);
