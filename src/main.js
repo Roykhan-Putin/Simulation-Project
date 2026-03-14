@@ -909,6 +909,9 @@ function resetSim() {
 
   globalAgentIDCounter = 0;
   agentExportData = [];
+  
+  globalRhoHistory = [];
+  avgDailyRho = 0;
 
 
   for (const node of nodes) {
