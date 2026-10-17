@@ -1,16 +1,16 @@
 // Tambahkan ini di bagian global
-let secondsInSim   = 0;
-let currentHour    = 10; 
-let currentMinute  = 0;
-let parkOpenHour   = 10;
-let parkCloseHour  = 20;
-let gateCloseHour  = 18; // <-- Tambahkan jam tutup gerbang
+let secondsInSim = 0;
+let currentHour = 10;
+let currentMinute = 0;
+let parkOpenHour = 10;
+let parkCloseHour = 20;
+let gateCloseHour = 18; // <-- Tambahkan jam tutup gerbang
 let rideID = 0;
 let rideEditor = null;
 let TOTAL_N = 500; // Default awal
 let arrivalSchedule = []; // Tempat menyimpan menit kedatangan setiap agen
 
-let globalAgentIDCounter = 0; 
+let globalAgentIDCounter = 0;
 let agentExportData = []; // Array untuk menyimpan buku harian semua pengunjung yang pulang
 
 let globalRhoHistory = [];
@@ -23,7 +23,7 @@ let inputCap, inputRuntime;
 let inputPopular;
 let saveBtn, cancelBtn;
 
-const TIME_ACCELERATION = 60; 
+const TIME_ACCELERATION = 60;
 
 // global vars
 let simMap;
@@ -69,321 +69,305 @@ let selectedNodeIndex = -1;
 let selecting = false;
 
 function setup() {
-  // === INJEKSI CSS UNTUK SLIDER PANEL (GLASSMORPHISM) ===
-  const style = createElement('style', `
-    .side-panel {
-      position: fixed;
-      top: 0;
-      left: -320px; /* Sembunyikan di luar layar saat awal */
-      width: 300px;
-      height: 100vh;
-      background: rgba(20, 22, 28, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-right: 1px solid rgba(255,255,255,0.1);
-      transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-      z-index: 1000;
-      padding: 20px;
-      box-sizing: border-box;
-      color: #fff;
-      font-family: sans-serif;
-      overflow-y: auto;
-      box-shadow: 4px 0 25px rgba(0,0,0,0.5);
-    }
-    .side-panel.open {
-      left: 0; /* Geser ke dalam layar */
-    }
-    /* === TOPBAR === */
-    .sim-topbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 52px;
-      z-index: 1100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      background: rgba(6, 14, 30, 0.94);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(56,189,248,0.18);
-      box-shadow: 0 2px 24px rgba(0,0,0,0.5);
-    }
-    .sim-back-btn {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 11px;
-      letter-spacing: 2px;
-      color: rgba(56,189,248,0.75);
-      text-decoration: none;
-      padding: 6px 16px;
-      border: 1px solid rgba(56,189,248,0.25);
-      border-radius: 20px;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .sim-back-btn:hover {
-      background: rgba(56,189,248,0.1);
-      border-color: rgba(56,189,248,0.55);
-      color: #38bdf8;
-    }
-    .sim-topbar-center {
-      position: absolute;
-      left: 50%; transform: translateX(-50%);
-      display: flex; align-items: center; gap: 10px;
-      pointer-events: none;
-    }
-    .sim-topbar-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: #22c55e; box-shadow: 0 0 8px #22c55e;
-      animation: tbBlink 2s ease-in-out infinite;
-    }
-    @keyframes tbBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-    .sim-topbar-title {
-      font-family: 'Orbitron', 'Share Tech Mono', monospace;
-      font-size: 13px; font-weight: 700;
-      color: #e2e8f0; letter-spacing: 1px; white-space: nowrap;
-    }
-    .sim-topbar-title span {
-      background: linear-gradient(90deg, #38bdf8, #818cf8);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .sim-topbar-right {
-      display: flex; align-items: center; gap: 8px;
-    }
-    /* Controls button — sekarang di topbar kanan */
-    .panel-toggle-btn {
-      position: static !important;
-      background: rgba(56,189,248,0.12) !important;
-      color: #38bdf8 !important;
-      border: 1px solid rgba(56,189,248,0.3) !important;
-      padding: 7px 18px !important;
-      border-radius: 20px !important;
-      font-family: 'Share Tech Mono', monospace !important;
-      font-size: 11px !important;
-      font-weight: normal !important;
-      letter-spacing: 1.5px !important;
-      cursor: pointer;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
-      transition: all 0.2s !important;
-      white-space: nowrap;
-    }
-    .panel-toggle-btn:hover {
-      background: rgba(56,189,248,0.22) !important;
-      border-color: rgba(56,189,248,0.6) !important;
-      transform: none !important;
-    }
-    /* Push app content below topbar */
-    .app-container { padding-top: 52px; }
-    .main-title    { display: none !important; }
-    .close-panel-btn {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: none;
-      border: none;
-      color: #9ca3af;
-      font-size: 28px;
-      cursor: pointer;
-      line-height: 1;
-      transition: color 0.2s;
-    }
-    .close-panel-btn:hover {
-      color: #fff;
-    }
-    .sp-section-title {
-      font-size: 13px;
-      color: #9ca3af;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin: 25px 0 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 8px;
-    }
-    .sp-input-group {
-      margin-bottom: 15px;
-    }
-    .sp-input-group label {
-      display: block;
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #cbd5e1;
-    }
-    .sp-btn {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05);
-      color: white;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: bold;
-      transition: all 0.2s;
-    }
-    .sp-btn:hover { 
-      background: rgba(255,255,255,0.15); 
-      transform: translateY(-1px);
-    }
-    .sp-btn.success { background: #22c55e; color: #000; border: none; }
-    .sp-btn.success:hover { background: #16a34a; }
-    .sp-btn.danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.5); }
-    .sp-btn.danger:hover { background: #ef4444; color: #fff; }
-    .sp-input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(0,0,0,0.4);
-      color: white;
-      box-sizing: border-box;
-      font-family: monospace;
-      font-size: 14px;
-    }
-    .sp-input:focus {
-      outline: none;
-      border-color: #38bdf8;
-    }
-  `);
-  style.parent(document.head);
-
   // === MAIN CONTAINER ===
   const app = createDiv();
   app.class("app-container");
 
-  // ===== TOPBAR (fixed, full-width) =====
-  const topbarEl = document.createElement('div');
+  // ===== TOPBAR (fixed, full-width Material 3 App Bar) =====
+  const topbarEl = document.createElement('header');
   topbarEl.className = 'sim-topbar';
   topbarEl.innerHTML = `
-    <a href="index.html" class="sim-back-btn">← HOME</a>
-    <div class="sim-topbar-center">
-      <div class="sim-topbar-dot"></div>
-      <div class="sim-topbar-title">🎢 DUFAN &nbsp;<span>HIERARCHICAL</span></div>
+    <div class="sim-topbar-left">
+      <a href="index.html" class="sim-back-btn" title="Kembali ke Beranda">
+        <span class="icon">arrow_back</span>Home
+      </a>
+      <div class="sim-mode-switch" role="tablist">
+        <a href="hierarchicalRouting.html" class="sim-mode-chip" role="tab">
+          <span class="icon">account_tree</span>Hierarchical
+        </a>
+        <a href="noHierarchicalRouting.html" class="sim-mode-chip active" role="tab">
+          <span class="icon">alt_route</span>Non-Hierarchical
+        </a>
+      </div>
     </div>
-    <div class="sim-topbar-right" id="topbar-right-slot"></div>
+
+    <div class="sim-topbar-right">
+      <div class="sim-actions-group">
+        <button class="sim-action-btn primary" id="sim-quick-play-btn" type="button" title="Mulai / Jeda Simulasi">
+          <span class="icon" id="sim-quick-play-icon">play_arrow</span>
+          <span class="sim-action-text" id="sim-quick-play-text">Mulai</span>
+        </button>
+        <button class="sim-action-btn icon-only" id="sim-quick-reset-btn" type="button" title="Reset Simulasi">
+          <span class="icon">restart_alt</span>
+        </button>
+        <button class="sim-action-btn" id="sim-controls-btn" type="button" title="Panel Pengaturan">
+          <span class="icon" id="sim-controls-icon">tune</span>
+          <span class="sim-action-text">Controls</span>
+        </button>
+        <button class="theme-toggle-btn" id="sim-theme-toggle" type="button" aria-label="Ganti tema">
+          <span class="icon theme-dark-icon">dark_mode</span>
+          <span class="icon theme-light-icon">light_mode</span>
+        </button>
+      </div>
+    </div>
   `;
   document.body.appendChild(topbarEl);
 
-  // ===== TOMBOL BUKA PANEL — ditempatkan di slot topbar kanan =====
-  const toggleBtnEl = document.createElement('button');
-  toggleBtnEl.className = 'panel-toggle-btn';
-  toggleBtnEl.textContent = '☰ Controls';
-  document.getElementById('topbar-right-slot').appendChild(toggleBtnEl);
+  // Theme switcher
+  document.getElementById('sim-theme-toggle').addEventListener('click', function () {
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+
+  // Quick Play / Pause button
+  document.getElementById('sim-quick-play-btn').addEventListener('click', function () {
+    toggleSim();
+  });
+
+  // Quick Reset button
+  document.getElementById('sim-quick-reset-btn').addEventListener('click', function () {
+    resetSim();
+  });
+
+  // Backdrop untuk side-panel drawer dari kanan
+  const backdrop = document.createElement('div');
+  backdrop.className = 'side-panel-backdrop';
+  document.body.appendChild(backdrop);
 
   // ===== SIDE PANEL CONTAINER — langsung ke body agar z-index & event benar =====
   const panel = createDiv();
   panel.class("side-panel");
   panel.parent(document.body);
 
-  // Tombol close — native DOM agar tidak bergantung pada p5 parent chain
-  const closeBtnEl = document.createElement('button');
-  closeBtnEl.className = 'close-panel-btn';
-  closeBtnEl.textContent = '×';
-  panel.elt.appendChild(closeBtnEl);
+  const toggleBtnEl = document.getElementById('sim-controls-btn');
+  const controlsIcon = document.getElementById('sim-controls-icon');
 
-  // Logika Buka/Tutup — semua native addEventListener
+  // Render struktur HTML Control Panel Material Design 3 (Modal Side Sheet)
+  panel.elt.innerHTML = `
+    <div class="side-panel-header">
+      <div class="sp-header-text">
+        <div class="sp-header-title">
+          <span class="material-symbols-rounded">tune</span>
+          <span>Control Panel</span>
+        </div>
+        <div class="sp-header-subtitle">Konfigurasi & Manajemen Simulasi</div>
+      </div>
+      <button type="button" class="sp-close-btn" id="sp-close-btn" aria-label="Tutup Panel">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+
+    <div class="side-panel-body">
+      <!-- KARTU 1: POPULASI PENGUNJUNG -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <span class="material-symbols-rounded sp-card-icon">groups</span>
+          <span class="sp-card-title">Populasi Pengunjung (N)</span>
+        </div>
+        <div class="m3-text-field">
+          <span class="material-symbols-rounded m3-tf-icon">person_add</span>
+          <input type="number" id="sp-n-input" class="m3-tf-input" value="500" min="1" max="5000" />
+          <span class="m3-tf-suffix">Orang</span>
+        </div>
+        <div class="m3-chips-label">Preset Cepat:</div>
+        <div class="m3-chips-row">
+          <button type="button" class="m3-chip" data-val="250"><span class="material-symbols-rounded m3-chip-check">check</span>250</button>
+          <button type="button" class="m3-chip active" data-val="500"><span class="material-symbols-rounded m3-chip-check">check</span>500</button>
+          <button type="button" class="m3-chip" data-val="1000"><span class="material-symbols-rounded m3-chip-check">check</span>1.000</button>
+          <button type="button" class="m3-chip" data-val="2000"><span class="material-symbols-rounded m3-chip-check">check</span>2.000</button>
+        </div>
+      </div>
+
+      <!-- KARTU 2: EKSEKUSI SIMULASI -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <span class="material-symbols-rounded sp-card-icon">play_circle</span>
+          <span class="sp-card-title">Eksekusi Simulasi</span>
+        </div>
+        
+        <button type="button" class="m3-btn m3-btn-filled" id="sp-start-btn">
+          <span class="material-symbols-rounded" id="sp-start-icon">play_arrow</span>
+          <span id="sp-start-text">Mulai Simulasi</span>
+        </button>
+        
+        <div class="m3-btn-grid">
+          <button type="button" class="m3-btn m3-btn-tonal" id="sp-reset-btn" title="Reset simulasi ke kondisi awal">
+            <span class="material-symbols-rounded">restart_alt</span>
+            <span>Reset</span>
+          </button>
+          <button type="button" class="m3-btn m3-btn-tonal" id="sp-stats-btn" title="Tampilkan/sembunyikan panel statistik">
+            <span class="material-symbols-rounded">insights</span>
+            <span>Stats HUD</span>
+          </button>
+        </div>
+        
+        <button type="button" class="m3-btn m3-btn-outlined" id="sp-export-btn" title="Unduh rekap historis ke format CSV">
+          <span class="material-symbols-rounded">download</span>
+          <span>Export Data (CSV)</span>
+        </button>
+      </div>
+
+      <!-- KARTU 3: MANAJEMEN WAHANA & PETA -->
+      <div class="sp-card">
+        <div class="sp-card-header">
+          <span class="material-symbols-rounded sp-card-icon">map</span>
+          <span class="sp-card-title">Manajemen Peta & Wahana</span>
+        </div>
+
+        <div class="m3-switch-list">
+          <div class="m3-switch-row" id="sp-tool-edit" role="button" tabindex="0">
+            <div class="m3-switch-icon-box">
+              <span class="material-symbols-rounded">edit_attributes</span>
+            </div>
+            <div class="m3-switch-info">
+              <div class="m3-switch-title">Edit Parameter Wahana</div>
+              <div class="m3-switch-desc">Ubah kapasitas, durasi, & status buka</div>
+            </div>
+            <div class="m3-switch" id="sp-switch-edit" aria-checked="false">
+              <div class="m3-switch-track">
+                <div class="m3-switch-thumb">
+                  <span class="material-symbols-rounded m3-switch-icon">check</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="m3-switch-row" id="sp-tool-create" role="button" tabindex="0">
+            <div class="m3-switch-icon-box">
+              <span class="material-symbols-rounded">architecture</span>
+            </div>
+            <div class="m3-switch-info">
+              <div class="m3-switch-title">Creator Mode</div>
+              <div class="m3-switch-desc">Tambah / modifikasi lintasan & wahana</div>
+            </div>
+            <div class="m3-switch" id="sp-switch-create" aria-checked="false">
+              <div class="m3-switch-track">
+                <div class="m3-switch-thumb">
+                  <span class="material-symbols-rounded m3-switch-icon">check</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="m3-map-actions">
+          <button type="button" class="m3-btn-subtle" id="sp-default-map-btn" title="Kembalikan layout standar peta Dufan">
+            <span class="material-symbols-rounded">history</span>
+            <span>Default Map</span>
+          </button>
+          <button type="button" class="m3-btn-subtle danger" id="sp-clear-map-btn" title="Hapus semua titik dan lintasan">
+            <span class="material-symbols-rounded">delete_outline</span>
+            <span>Clear Map</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KARTU 4: INFO OPERASIONAL -->
+      <div class="m3-info-card">
+        <div class="m3-info-row">
+          <div class="m3-info-leading">
+            <span class="material-symbols-rounded">schedule</span>
+            <span>Jam Operasional</span>
+          </div>
+          <span class="m3-info-val">10:00 - 19:00 WIB</span>
+        </div>
+        <div class="m3-info-row">
+          <div class="m3-info-leading">
+            <span class="material-symbols-rounded">analytics</span>
+            <span>Model Antrean</span>
+          </div>
+          <span class="m3-info-val">M/M/1 Queue Theory</span>
+        </div>
+        <div class="m3-info-row">
+          <div class="m3-info-leading">
+            <span class="material-symbols-rounded">verified</span>
+            <span>Engine</span>
+          </div>
+          <span class="m3-info-val">Dufan Smart Sim v2.0</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const closeBtnEl = document.getElementById('sp-close-btn');
+
+  // Logika Buka/Tutup Drawer
   function openPanel() {
     panel.addClass("open");
-    toggleBtnEl.textContent = "✕ Controls";
-    toggleBtnEl.style.background = "rgba(239,68,68,0.15)";
-    toggleBtnEl.style.borderColor = "rgba(239,68,68,0.4)";
-    toggleBtnEl.style.color = "#ef4444";
+    backdrop.classList.add("visible");
+    if (controlsIcon) controlsIcon.textContent = 'close';
+    updateSidePanelToolBadges();
   }
   function closePanel() {
     panel.removeClass("open");
-    toggleBtnEl.textContent = "☰ Controls";
-    toggleBtnEl.style.background = "";
-    toggleBtnEl.style.borderColor = "";
-    toggleBtnEl.style.color = "";
+    backdrop.classList.remove("visible");
+    if (controlsIcon) controlsIcon.textContent = 'tune';
   }
   function togglePanel() {
     panel.elt.classList.contains("open") ? closePanel() : openPanel();
   }
-  toggleBtnEl.addEventListener('click', togglePanel);
-  closeBtnEl.addEventListener('click', closePanel);
+  if (toggleBtnEl) toggleBtnEl.addEventListener('click', togglePanel);
+  if (closeBtnEl) closeBtnEl.addEventListener('click', closePanel);
+  backdrop.addEventListener('click', closePanel);
 
-  // p5 wrapper agar sisa kode yang pakai closeBtn.mouseClicked tidak error
-  const closeBtn = { mouseClicked: (fn) => closeBtnEl.addEventListener('click', fn) };
-
-  // ===== ISI PANEL KONTROL =====
-  const panelTitle = createDiv("⚙️ Control Panel");
-  panelTitle.style("font-size", "22px");
-  panelTitle.style("font-weight", "bold");
-  panelTitle.style("margin-bottom", "20px");
-  panelTitle.parent(panel);
-
-  // --- SECTION: SETTINGS ---
-  const setSec = createDiv("General Settings");
-  setSec.class("sp-section-title");
-  setSec.parent(panel);
-
-  const inputGroup = createDiv();
-  inputGroup.class("sp-input-group");
-  inputGroup.parent(panel);
-  
-  const nLabel = createElement("label", "Total Visitors (N):");
-  nLabel.parent(inputGroup);
-  
-  const nInput = createInput('500', 'number');
-  nInput.class("sp-input");
-  nInput.parent(inputGroup);
-  nInput.input(() => { TOTAL_N = int(nInput.value()); 
-    if (!isRunning){
-      generateArrivalSchedule(TOTAL_N);
-    }
+  // Binding Event Kontrol
+  const nInput = document.getElementById('sp-n-input');
+  const presetChips = panel.elt.querySelectorAll('.m3-chip');
+  if (nInput) {
+    nInput.addEventListener('input', () => {
+      const val = parseInt(nInput.value, 10);
+      if (!isNaN(val) && val > 0) {
+        TOTAL_N = val;
+        if (!isRunning) generateArrivalSchedule(TOTAL_N);
+        presetChips.forEach(c => c.classList.toggle('active', parseInt(c.dataset.val, 10) === TOTAL_N));
+      }
+    });
+  }
+  presetChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const val = parseInt(chip.dataset.val, 10);
+      if (nInput) nInput.value = val;
+      TOTAL_N = val;
+      if (!isRunning) generateArrivalSchedule(TOTAL_N);
+      presetChips.forEach(c => c.classList.toggle('active', c === chip));
+    });
   });
 
-  // --- SECTION: SIMULATION ---
-  const simSec = createDiv("Simulation");
-  simSec.class("sp-section-title");
-  simSec.parent(panel);
+  const spStartBtn = document.getElementById('sp-start-btn');
+  if (spStartBtn) spStartBtn.addEventListener('click', toggleSim);
 
-  const startSimBtn = createButton("▶ Start / Pause");
-  startSimBtn.class("sp-btn success");
-  startSimBtn.parent(panel);
-  startSimBtn.mouseClicked(toggleSim);
+  const spResetBtn = document.getElementById('sp-reset-btn');
+  if (spResetBtn) spResetBtn.addEventListener('click', resetSim);
 
-  const resetSimBtn = createButton("⟲ Reset Simulation");
-  resetSimBtn.class("sp-btn danger");
-  resetSimBtn.parent(panel);
-  resetSimBtn.mouseClicked(resetSim);
+  const spStatsBtn = document.getElementById('sp-stats-btn');
+  if (spStatsBtn) spStatsBtn.addEventListener('click', toggleStats);
 
-  const statsPanelBtn = createButton("📊 Toggle Stats");
-  statsPanelBtn.class("sp-btn");
-  statsPanelBtn.parent(panel);
-  statsPanelBtn.mouseClicked(toggleStats);
+  const spExportBtn = document.getElementById('sp-export-btn');
+  if (spExportBtn) spExportBtn.addEventListener('click', exportCSV);
 
-  const exportBtn = createButton("⬇ Export CSV");
-  exportBtn.class("sp-btn");
-  exportBtn.parent(panel);
-  exportBtn.mouseClicked(exportCSV);
+  const spToolEdit = document.getElementById('sp-tool-edit');
+  if (spToolEdit) spToolEdit.addEventListener('click', () => {
+    toggleEditMode();
+  });
 
-  // --- SECTION: MAP CONTROL ---
-  const mapSec = createDiv("Map Control");
-  mapSec.class("sp-section-title");
-  mapSec.parent(panel);
+  const spToolCreate = document.getElementById('sp-tool-create');
+  if (spToolCreate) spToolCreate.addEventListener('click', () => {
+    toggleCreate();
+  });
 
-  const editRideBtn = createButton("⚙ Edit Ride");
-  editRideBtn.class("sp-btn");
-  editRideBtn.parent(panel);
-  editRideBtn.mouseClicked(toggleEditMode);
+  const spDefaultMapBtn = document.getElementById('sp-default-map-btn');
+  if (spDefaultMapBtn) spDefaultMapBtn.addEventListener('click', () => {
+    defaultMap();
+    updateSidePanelToolBadges();
+  });
 
-  const creatorBtn = createButton("✏ Creator Mode");
-  creatorBtn.class("sp-btn");
-  creatorBtn.parent(panel);
-  creatorBtn.mouseClicked(toggleCreate);
-
-  const defaultMapButton = createButton("📌 Default Map");
-  defaultMapButton.class("sp-btn");
-  defaultMapButton.parent(panel);
-  defaultMapButton.mouseClicked(defaultMap);
-
-  const clearMapBtn = createButton("🗑 Clear Map");
-  clearMapBtn.class("sp-btn danger");
-  clearMapBtn.parent(panel);
-  clearMapBtn.mouseClicked(resetMap);
+  const spClearMapBtn = document.getElementById('sp-clear-map-btn');
+  if (spClearMapBtn) spClearMapBtn.addEventListener('click', () => {
+    resetMap();
+    updateSidePanelToolBadges();
+  });
 
   // ===== MAIN TITLE hidden — replaced by topbar =====
   // (judul sekarang di topbar, tidak perlu elemen terpisah)
@@ -405,6 +389,7 @@ function setup() {
   frameRate(FRAME_RATE);
   createMap();
   resetSim();
+  updateRideDashboard(true);
 }
 
 function draw() {
@@ -457,26 +442,9 @@ function draw() {
     // ===== DRAW AGENTS — LOD + HEATMAP =====
     drawAgentsLOD();
 
-    // ===== DIGITAL CLOCK UI (Glassmorphism Pill) =====
-    push();
-    const clockTxt = `${currentHour.toString().padStart(2,'0')}:${currentMinute.toString().padStart(2,'0')} WIB`;
-    textSize(18);
-    textStyle(BOLD);
-    const tw = textWidth(clockTxt);
-    
-    fill(18, 18, 22, 220);
-    stroke(255, 255, 255, 40);
-    strokeWeight(1);
-    rect(WIDTH - tw - 40, 15, tw + 25, 36, 18);
-
-    textAlign(CENTER, CENTER);
-    fill("#38bdf8");
-    noStroke();
-    text(clockTxt, WIDTH - tw/2 - 27, 33);
-    pop();
-
-    // ===== RUNNING INDICATOR =====
+    // ===== RUNNING INDICATOR & TOPBAR SYNC =====
     drawRunning();
+    updateTopBarHUD();
 
     drawDisplay();
 
@@ -484,15 +452,15 @@ function draw() {
     // ✅ FIX: Gunakan frameRunning (bukan frameCount) agar reset benar-benar nol-kan rekaman.
     // Tambahkan grace period 300 frame (~5 detik sim) agar wahana sempat stabil dulu.
     if (frameRunning % 60 === 0 && frameRunning > 300 && currentHour < parkCloseHour) {
-        
-        // Hanya rekam nilai Rho jika ada orang di taman, ATAU masih ada jadwal kedatangan pengunjung.
-        if (agents.length > 0 || arrivalSchedule.length > 0) {
-            let macroMetrics = getGlobalQueueMetrics(simMap);
-            if (macroMetrics) {
-                globalRhoHistory.push(macroMetrics.globalRho);
-            }
+
+      // Hanya rekam nilai Rho jika ada orang di taman, ATAU masih ada jadwal kedatangan pengunjung.
+      if (agents.length > 0 || arrivalSchedule.length > 0) {
+        let macroMetrics = getGlobalQueueMetrics(simMap);
+        if (macroMetrics) {
+          globalRhoHistory.push(macroMetrics.globalRho);
         }
-        
+      }
+
     }
 
     if (showStats) {
@@ -504,7 +472,7 @@ function draw() {
 
 
 
-    } else {
+  } else {
     // ===== CREATOR MODE =====
     push();
     fill(255);
@@ -526,7 +494,7 @@ function draw() {
         if (!selected && mouseIsPressed) {
           selectedNodeIndex = i;
           selected = true;
-        } 
+        }
         else if (selected && !mouseIsPressed) {
           let valid = true;
           for (let connection of connections) {
@@ -563,66 +531,273 @@ function draw() {
   }
 }
 
+function updateSidePanelToolBadges() {
+  const switchEdit = document.getElementById('sp-switch-edit');
+  const toolEdit = document.getElementById('sp-tool-edit');
+  const switchCreate = document.getElementById('sp-switch-create');
+  const toolCreate = document.getElementById('sp-tool-create');
+  if (switchEdit && toolEdit) {
+    switchEdit.classList.toggle('active', editMode);
+    switchEdit.setAttribute('aria-checked', editMode ? 'true' : 'false');
+    toolEdit.classList.toggle('active', editMode);
+  }
+  if (switchCreate && toolCreate) {
+    switchCreate.classList.toggle('active', creatorMode);
+    switchCreate.setAttribute('aria-checked', creatorMode ? 'true' : 'false');
+    toolCreate.classList.toggle('active', creatorMode);
+  }
+}
+
+function updateTopBarHUD() {
+  const statusLabel = document.getElementById('sim-status-label');
+  const statusDot = document.getElementById('sim-status-dot');
+  const clockVal = document.getElementById('sim-clock-val');
+  const visitorsVal = document.getElementById('sim-visitors-val');
+  const playBtnIcon = document.getElementById('sim-quick-play-icon');
+  const playBtnText = document.getElementById('sim-quick-play-text');
+  const spStartBtn = document.getElementById('sp-start-btn');
+  const spStartIcon = document.getElementById('sp-start-icon');
+  const spStartText = document.getElementById('sp-start-text');
+
+  if (statusLabel) {
+    if (isRunning) {
+      statusLabel.textContent = "RUNNING";
+      if (statusDot) statusDot.className = "sim-status-dot";
+      if (playBtnIcon) playBtnIcon.textContent = "pause";
+      if (playBtnText) playBtnText.textContent = "Jeda";
+      if (spStartIcon) spStartIcon.textContent = "pause";
+      if (spStartText) spStartText.textContent = "Jeda Simulasi";
+      if (spStartBtn) spStartBtn.classList.add('running');
+    } else if (currentHour >= parkCloseHour && agents.length === 0 && frameRunning > 0) {
+      statusLabel.textContent = "SELESAI";
+      if (statusDot) statusDot.className = "sim-status-dot finished";
+      if (playBtnIcon) playBtnIcon.textContent = "replay";
+      if (playBtnText) playBtnText.textContent = "Ulang";
+      if (spStartIcon) spStartIcon.textContent = "replay";
+      if (spStartText) spStartText.textContent = "Ulang Simulasi";
+      if (spStartBtn) spStartBtn.classList.remove('running');
+    } else {
+      statusLabel.textContent = frameRunning > 0 ? "PAUSED" : "READY";
+      if (statusDot) statusDot.className = "sim-status-dot paused";
+      if (playBtnIcon) playBtnIcon.textContent = "play_arrow";
+      if (playBtnText) playBtnText.textContent = "Mulai";
+      if (spStartIcon) spStartIcon.textContent = "play_arrow";
+      if (spStartText) spStartText.textContent = frameRunning > 0 ? "Lanjutkan Simulasi" : "Mulai Simulasi";
+      if (spStartBtn) spStartBtn.classList.remove('running');
+    }
+  }
+
+  if (clockVal) {
+    clockVal.textContent = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')} WIB`;
+  }
+
+  if (visitorsVal) {
+    let actVisitors = 0;
+    for (let agt of agents) {
+      if (!agt.isSplitPart && agt.agentState !== AgentStates.LEFT && agt.agentState !== AgentStates.EXITED && agt.agentState !== AgentStates.ENTERING) {
+        actVisitors += (agt.size || 0);
+      }
+    }
+    visitorsVal.textContent = `${actVisitors} di Taman`;
+  }
+}
+
 function drawParkBackground() {
-  // ===== BLUEPRINT BASE =====
-  background(8, 18, 38); // deep navy blueprint
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-  // ===== GRID MAJOR (every 80px) =====
-  stroke(30, 80, 160, 60);
+  // ===== 1. CANVAS BASE =====
+  if (isDark) {
+    background(18, 17, 23); // M3 dark surface
+  } else {
+    background(248, 246, 252); // M3 light surface
+  }
+
+  push();
+
+  // ===== 2. THEMATIC ZONE WATERMARKS & WASHES =====
+  noStroke();
+
+  // Zone 1: Fantasi & Gerbang (Kiri Bawah)
+  fill(244, 63, 94, isDark ? 14 : 16);
+  ellipse(width * 0.22, height * 0.45, 430, 320);
+  stroke(244, 63, 94, isDark ? 35 : 28);
   strokeWeight(1);
-  for (let x = 0; x < width; x += 80) {
-    line(x, 0, x, height);
-  }
-  for (let y = 0; y < height; y += 80) {
-    line(0, y, width, y);
-  }
+  drawingContext.setLineDash([4, 6]);
+  ellipse(width * 0.22, height * 0.45, 430, 320);
+  drawingContext.setLineDash([]);
+  noStroke();
 
-  // ===== GRID MINOR (every 20px) =====
-  stroke(20, 55, 120, 28);
-  strokeWeight(0.5);
-  for (let x = 0; x < width; x += 20) {
-    line(x, 0, x, height);
-  }
-  for (let y = 0; y < height; y += 20) {
-    line(0, y, width, y);
-  }
-
-  // ===== CROSS-HAIR CORNER MARKS =====
-  stroke(56, 140, 255, 50);
+  // Zone 2: Dunia Air & Petualangan (Tengah & Kiri Atas)
+  fill(56, 189, 248, isDark ? 14 : 18);
+  ellipse(width * 0.44, height * 0.38, 360, 320);
+  stroke(56, 189, 248, isDark ? 35 : 28);
   strokeWeight(1);
-  const mark = 12;
-  // corners
-  [[20,20],[width-20,20],[20,height-20],[width-20,height-20]].forEach(([cx,cy]) => {
-    line(cx-mark, cy, cx+mark, cy);
-    line(cx, cy-mark, cx, cy+mark);
+  drawingContext.setLineDash([4, 6]);
+  ellipse(width * 0.44, height * 0.38, 360, 320);
+  drawingContext.setLineDash([]);
+  noStroke();
+
+  // Zone 3: Wonderland & Thrill (Kanan & Kanan Bawah)
+  fill(168, 85, 247, isDark ? 14 : 16);
+  ellipse(width * 0.80, height * 0.45, 390, 340);
+  stroke(168, 85, 247, isDark ? 35 : 28);
+  strokeWeight(1);
+  drawingContext.setLineDash([4, 6]);
+  ellipse(width * 0.80, height * 0.45, 390, 340);
+  drawingContext.setLineDash([]);
+  noStroke();
+
+  // Zone 4: Rimba & Ekspedisi (Kanan Atas)
+  fill(16, 185, 129, isDark ? 14 : 18);
+  ellipse(width * 0.62, height * 0.18, 420, 200);
+  stroke(16, 185, 129, isDark ? 35 : 28);
+  strokeWeight(1);
+  drawingContext.setLineDash([4, 6]);
+  ellipse(width * 0.62, height * 0.18, 420, 200);
+  drawingContext.setLineDash([]);
+  noStroke();
+
+  // ===== 3. ZONE WATERMARK LABELS =====
+  textSize(10);
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+
+  fill(244, 63, 94, isDark ? 70 : 80);
+  text("ZONA 1 • FANTASI & GERBANG", width * 0.22, height * 0.58);
+
+  fill(56, 189, 248, isDark ? 70 : 85);
+  text("ZONA 2 • DUNIA AIR & PETUALANGAN", width * 0.44, height * 0.52);
+
+  fill(168, 85, 247, isDark ? 70 : 80);
+  text("ZONA 3 • WONDERLAND & THRILL", width * 0.80, height * 0.58);
+
+  fill(16, 185, 129, isDark ? 70 : 85);
+  text("ZONA 4 • RIMBA & EKSPEDISI", width * 0.62, height * 0.10);
+
+  // ===== 4. CENTRAL DECORATIVE LAKE & FOUNTAIN (DANAU FANTASI) =====
+  const lakeX = width * 0.49;
+  const lakeY = height * 0.28;
+
+  // Outer shoreline
+  fill(56, 189, 248, isDark ? 18 : 25);
+  ellipse(lakeX, lakeY, 130, 90);
+
+  // Lake body
+  fill(isDark ? color(16, 42, 64, 180) : color(215, 240, 252, 200));
+  stroke(isDark ? color(56, 189, 248, 60) : color(2, 132, 199, 45));
+  strokeWeight(1.2);
+  ellipse(lakeX, lakeY, 114, 76);
+
+  // Lake concentric ripples
+  noFill();
+  stroke(isDark ? color(56, 189, 248, 45) : color(2, 132, 199, 35));
+  strokeWeight(0.8);
+  ellipse(lakeX, lakeY, 74, 48);
+  ellipse(lakeX, lakeY, 38, 24);
+
+  // Fountain center nozzle
+  fill(isDark ? color(188, 194, 255) : color(2, 132, 199));
+  noStroke();
+  circle(lakeX, lakeY, 6);
+
+  // Lake Label
+  fill(isDark ? color(188, 194, 255, 90) : color(3, 105, 161, 100));
+  textSize(8);
+  textStyle(BOLD);
+  textAlign(CENTER, TOP);
+  text("DANAU FANTASI", lakeX, lakeY + 42);
+
+  // ===== 5. ARCHITECTURAL GRID & PERIMETER =====
+  // 100m major grid
+  stroke(isDark ? color(255, 255, 255, 10) : color(0, 0, 0, 8));
+  strokeWeight(1);
+  for (let x = 80; x < width; x += 80) line(x, 0, x, height);
+  for (let y = 80; y < height; y += 80) line(0, y, width, y);
+
+  // Minor dot intersections
+  fill(isDark ? color(255, 255, 255, 25) : color(0, 0, 0, 20));
+  noStroke();
+  for (let x = 40; x < width; x += 40) {
+    for (let y = 40; y < height; y += 40) {
+      circle(x, y, 1.5);
+    }
+  }
+
+  // Outer Park Boundary
+  stroke(isDark ? color(188, 194, 255, 30) : color(63, 81, 181, 25));
+  strokeWeight(1);
+  noFill();
+  rect(12, 12, width - 24, height - 24, 16);
+
+  // Boundary corner crosshairs
+  const mark = 8;
+  [[12, 12], [width - 12, 12], [12, height - 12], [width - 12, height - 12]].forEach(([cx, cy]) => {
+    line(cx - mark, cy, cx + mark, cy);
+    line(cx, cy - mark, cx, cy + mark);
   });
 
-  // ===== SCALE BAR bottom right =====
-  push();
-  stroke(56, 140, 255, 60);
+  // ===== 6. COMPASS ROSE (Placed above stats panel on left) =====
+  const compX = 36;
+  const compY = height - 224 - 40;
+  // Outer compass ring
+  stroke(isDark ? color(188, 194, 255, 45) : color(63, 81, 181, 40));
   strokeWeight(1);
-  fill(56, 140, 255, 60);
+  noFill();
+  circle(compX, compY, 28);
+
+  // North needle (Red)
+  fill(239, 68, 68);
+  noStroke();
+  triangle(compX - 3.5, compY, compX + 3.5, compY, compX, compY - 12);
+
+  // South needle (Muted)
+  fill(isDark ? 140 : 160);
+  triangle(compX - 3.5, compY, compX + 3.5, compY, compX, compY + 12);
+
+  // Center pivot
+  fill(255);
+  circle(compX, compY, 3);
+
+  // "U" (Utara / North) label
+  fill(isDark ? color(230, 225, 240) : color(28, 27, 32));
   textSize(8);
+  textStyle(BOLD);
   textAlign(CENTER, BOTTOM);
-  let sbX = width - 100, sbY = height - 18, sbW = 80;
+  text("U", compX, compY - 15);
+
+  // ===== 7. ARCHITECTURAL SCALE BAR (Placed above stats panel on right) =====
+  const sbW = 90;
+  const sbX = width - sbW - 24;
+  const sbY = height - 224 - 26;
+
+  stroke(isDark ? color(188, 194, 255, 80) : color(63, 81, 181, 80));
+  strokeWeight(1.5);
   line(sbX, sbY, sbX + sbW, sbY);
   line(sbX, sbY - 4, sbX, sbY + 4);
+  line(sbX + sbW / 2, sbY - 3, sbX + sbW / 2, sbY + 3);
   line(sbX + sbW, sbY - 4, sbX + sbW, sbY + 4);
-  text("~400m", sbX + sbW/2, sbY - 2);
+
+  noStroke();
+  fill(isDark ? color(200, 195, 215) : color(60, 55, 70));
+  textSize(8);
+  textStyle(BOLD);
+  textAlign(CENTER, BOTTOM);
+  text("400 METER (1px ≈ 1m)", sbX + sbW / 2, sbY - 5);
+
   pop();
 }
 
 function mouseClicked() {
-  if(rideEditor){
-    if (mouseX > width/2 - 100 && mouseX < width/2 - 20 &&
-      mouseY > height/2 + 120 && mouseY < height/2 + 160) {
-        applyRideEdit();
-      }
-      if (mouseX > width/2 + 20 && mouseX < width/2 + 100 &&
-        mouseY > height/2 + 120 && mouseY < height/2 + 160) {
-          rideEditor = null;
-        }
-  return;
+  if (rideEditor) {
+    if (mouseX > width / 2 - 100 && mouseX < width / 2 - 20 &&
+      mouseY > height / 2 + 120 && mouseY < height / 2 + 160) {
+      applyRideEdit();
+    }
+    if (mouseX > width / 2 + 20 && mouseX < width / 2 + 100 &&
+      mouseY > height / 2 + 120 && mouseY < height / 2 + 160) {
+      rideEditor = null;
+    }
+    return;
   }
 
   if (editMode) {
@@ -716,7 +891,7 @@ function editRideSettings(node) {
   select("#cancelRide").mousePressed(closeRideEditor);
 }
 
-function closeRideEditor(){
+function closeRideEditor() {
   if (rideEditorPanel) {
     rideEditorPanel.remove();
   }
@@ -735,58 +910,58 @@ function drawRideEditor() {
   fill(30);
   stroke(255);
   strokeWeight(2);
-  rect(width/2 - 200, height/2 - 180, 400, 360, 15);
+  rect(width / 2 - 200, height / 2 - 180, 400, 360, 15);
 
   fill(255);
   noStroke();
   textAlign(CENTER);
   textSize(18);
-  text("EDIT RIDE SETTINGS", width/2, height/2 - 140);
+  text("EDIT RIDE SETTINGS", width / 2, height / 2 - 140);
 
   textSize(14);
   textAlign(LEFT);
 
-  let x = width/2 - 160;
-  let y = height/2 - 110;
+  let x = width / 2 - 160;
+  let y = height / 2 - 110;
 
   text(`Open: ${rideEditor.openHour}:${rideEditor.openMinute}`, x, y);
-  text(`Close: ${rideEditor.closeHour}:${rideEditor.closeMinute}`, x, y+30);
-  text(`Capacity: ${rideEditor.capacity}`, x, y+60);
-  text(`Runtime: ${rideEditor.runtime} min`, x, y+90);
-  text(`Popular: ${rideEditor.isPopular}`, x, y+120);
+  text(`Close: ${rideEditor.closeHour}:${rideEditor.closeMinute}`, x, y + 30);
+  text(`Capacity: ${rideEditor.capacity}`, x, y + 60);
+  text(`Runtime: ${rideEditor.runtime} min`, x, y + 90);
+  text(`Popular: ${rideEditor.isPopular}`, x, y + 120);
 
   // buttons
-  drawButton(width/2 - 100, height/2 + 120, 80, 40, "SAVE");
-  drawButton(width/2 + 20, height/2 + 120, 80, 40, "CANCEL");
+  drawButton(width / 2 - 100, height / 2 + 120, 80, 40, "SAVE");
+  drawButton(width / 2 + 20, height / 2 + 120, 80, 40, "CANCEL");
 
   pop();
 }
 
-function drawButton(x,y,w,h,label) {
+function drawButton(x, y, w, h, label) {
   fill(70);
   stroke(255);
-  rect(x,y,w,h,8);
+  rect(x, y, w, h, 8);
   fill(255);
   noStroke();
-  textAlign(CENTER,CENTER);
-  text(label, x+w/2, y+h/2);
+  textAlign(CENTER, CENTER);
+  text(label, x + w / 2, y + h / 2);
 }
 
 function applyRideEdit() {
   let n = rideEditor;
   n.rideCategory = select("#rideCategory").value();
-  n.isContinuous = select("#isContinuous").value() === "true"; 
-  n.hasFastTrack = select("#fastTrack").value() === "true"; 
-  n.minHeight = int(select("#minHeight").value()); 
+  n.isContinuous = select("#isContinuous").value() === "true";
+  n.hasFastTrack = select("#fastTrack").value() === "true";
+  n.minHeight = int(select("#minHeight").value());
 
-  n.openHour   = int(select("#openH").value());
+  n.openHour = int(select("#openH").value());
   n.openMinute = int(select("#openM").value());
-  n.closeHour  = int(select("#closeH").value());
-  n.closeMinute= int(select("#closeM").value());
-  n.capacity   = int(select("#cap").value());
-  n.runtime    = int(select("#runtime").value());
-  n.waitLimit  = int(select("#waitLimit").value());
-  n.minCapacity = int(select("#minCap").value()); 
+  n.closeHour = int(select("#closeH").value());
+  n.closeMinute = int(select("#closeM").value());
+  n.capacity = int(select("#cap").value());
+  n.runtime = int(select("#runtime").value());
+  n.waitLimit = int(select("#waitLimit").value());
+  n.minCapacity = int(select("#minCap").value());
 
   n.turnover = Math.max(5, Math.round(n.runtime * 0.3));
 
@@ -847,13 +1022,14 @@ function drawRideOverlay(node) {
 function toggleEditMode() {
 
   if (!editMode) {
-    resetSim();       
+    resetSim();
     editMode = true;
     creatorMode = true;
   } else {
     editMode = false;
     creatorMode = false;
   }
+  updateSidePanelToolBadges();
 
 }
 
@@ -921,30 +1097,32 @@ function resetSim() {
   }
 
   generateArrivalSchedule(TOTAL_N);
-  
+
   isRunning = false;
+  updateTopBarHUD();
+  updateSidePanelToolBadges();
 }
 
 function generateArrivalSchedule(n) {
   arrivalSchedule = [];
   let durationHours = gateCloseHour - parkOpenHour; // Misal 18.00 - 10.00 = 8 jam
-  
+
   // Kita ambil sampel dari distribusi gamma
   // t dalam jam (0 sampai durationHours)
   for (let i = 0; i < n; i++) {
     let found = false;
     while (!found) {
       let t = random(0, durationHours);
-      let prob = gammaArrival(t); 
-      
+      let prob = gammaArrival(t);
+
       // Acceptance-Rejection Sampling yang sudah dioptimasi
-      if (random(0, 1) < prob) { 
+      if (random(0, 1) < prob) {
         arrivalSchedule.push(t * 3600); // Simpan dalam satuan detik simulasi
         found = true;
       }
     }
   }
-  
+
   // Urutkan jadwal kedatangan dari yang paling awal sampai akhir
   arrivalSchedule.sort((a, b) => a - b);
 }
@@ -967,6 +1145,7 @@ function toggleCreate() {
   creatorMode = !creatorMode;
 
   if (!creatorMode) checkMap();
+  updateSidePanelToolBadges();
 }
 
 function toggleStats() {
@@ -989,8 +1168,8 @@ function exportCSV() {
 
   let avgDailyRho = 0;
   if (globalRhoHistory.length > 0) {
-      let sumRho = globalRhoHistory.reduce((a, b) => a + b, 0);
-      avgDailyRho = sumRho / globalRhoHistory.length;
+    let sumRho = globalRhoHistory.reduce((a, b) => a + b, 0);
+    avgDailyRho = sumRho / globalRhoHistory.length;
   }
 
   // ==========================================
@@ -1002,32 +1181,32 @@ function exportCSV() {
   tableVisitor.addColumn("Ukuran Grup");
   tableVisitor.addColumn("Min Tinggi (cm)");
   tableVisitor.addColumn("Total Naik");
-  tableVisitor.addColumn("Avg Antre Individu (m)"); 
-  tableVisitor.addColumn("Durasi Kunjungan (m)"); 
+  tableVisitor.addColumn("Avg Antre Individu (m)");
+  tableVisitor.addColumn("Durasi Kunjungan (m)");
   tableVisitor.addColumn("Jam Masuk");
   tableVisitor.addColumn("Jam Keluar");
   tableVisitor.addColumn("Urutan Wahana (Jam Naik)");
   tableVisitor.addColumn("Waktu Antre Tiap Wahana");
 
   for (let data of agentExportData) {
-      let row = tableVisitor.addRow();
-      row.set("No Pengunjung", data.id);
-      row.set("Jenis", data.type);
-      row.set("Ukuran Grup", data.size);
-      row.set("Min Tinggi (cm)", data.minHeight);
-      row.set("Total Naik", data.totalRides);
-      row.set("Avg Antre Individu (m)", data.individualAvgQueue);
-      
-      let inParts = data.entryTime.split(':');
-      let outParts = data.exitTime.split(':');
-      let inMins = (parseInt(inParts[0]) * 60) + parseInt(inParts[1]);
-      let outMins = (parseInt(outParts[0]) * 60) + parseInt(outParts[1]);
-      row.set("Durasi Kunjungan (m)", outMins - inMins);
+    let row = tableVisitor.addRow();
+    row.set("No Pengunjung", data.id);
+    row.set("Jenis", data.type);
+    row.set("Ukuran Grup", data.size);
+    row.set("Min Tinggi (cm)", data.minHeight);
+    row.set("Total Naik", data.totalRides);
+    row.set("Avg Antre Individu (m)", data.individualAvgQueue);
 
-      row.set("Jam Masuk", data.entryTime);
-      row.set("Jam Keluar", data.exitTime);
-      row.set("Urutan Wahana (Jam Naik)", data.rideList);
-      row.set("Waktu Antre Tiap Wahana", data.queueList);
+    let inParts = data.entryTime.split(':');
+    let outParts = data.exitTime.split(':');
+    let inMins = (parseInt(inParts[0]) * 60) + parseInt(inParts[1]);
+    let outMins = (parseInt(outParts[0]) * 60) + parseInt(outParts[1]);
+    row.set("Durasi Kunjungan (m)", outMins - inMins);
+
+    row.set("Jam Masuk", data.entryTime);
+    row.set("Jam Keluar", data.exitTime);
+    row.set("Urutan Wahana (Jam Naik)", data.rideList);
+    row.set("Waktu Antre Tiap Wahana", data.queueList);
   }
 
   // ==========================================
@@ -1035,33 +1214,33 @@ function exportCSV() {
   // ==========================================
   let rideDailyStats = {};
   for (let ride of simMap.rides) {
-      let rName = ride.rideName || ride.name;
-      rideDailyStats[rName] = { totalNaik: 0, sumQueue: 0, maxQueue: 0 };
+    let rName = ride.rideName || ride.name;
+    rideDailyStats[rName] = { totalNaik: 0, sumQueue: 0, maxQueue: 0 };
   }
 
   // Membaca buku harian setiap agen untuk mencari tahu jumlah riil per wahana
   for (let data of agentExportData) {
-      let qStr = data.queueList;
-      if (!qStr || qStr === "-") continue;
-      
-      let groupSize = data.size || 1;
-      let ridesTaken = qStr.split(" | ");
-      
-      for (let item of ridesTaken) {
-          let parts = item.split(":");
-          if (parts.length === 2) {
-              let rName = parts[0].trim();
-              let qMins = parseFloat(parts[1].replace("m", "").trim());
-              
-              if (rideDailyStats[rName]) {
-                  rideDailyStats[rName].totalNaik += groupSize;
-                  rideDailyStats[rName].sumQueue += (qMins * groupSize);
-                  if (qMins > rideDailyStats[rName].maxQueue) {
-                      rideDailyStats[rName].maxQueue = qMins;
-                  }
-              }
+    let qStr = data.queueList;
+    if (!qStr || qStr === "-") continue;
+
+    let groupSize = data.size || 1;
+    let ridesTaken = qStr.split(" | ");
+
+    for (let item of ridesTaken) {
+      let parts = item.split(":");
+      if (parts.length === 2) {
+        let rName = parts[0].trim();
+        let qMins = parseFloat(parts[1].replace("m", "").trim());
+
+        if (rideDailyStats[rName]) {
+          rideDailyStats[rName].totalNaik += groupSize;
+          rideDailyStats[rName].sumQueue += (qMins * groupSize);
+          if (qMins > rideDailyStats[rName].maxQueue) {
+            rideDailyStats[rName].maxQueue = qMins;
           }
+        }
       }
+    }
   }
 
   // ==========================================
@@ -1083,53 +1262,53 @@ function exportCSV() {
   tableRide.addColumn("Status");
 
   for (let ride of simMap.rides) {
-      let rName = ride.rideName || ride.name;
-      let stats = rideDailyStats[rName];
-      let row = tableRide.addRow();
+    let rName = ride.rideName || ride.name;
+    let stats = rideDailyStats[rName];
+    let row = tableRide.addRow();
 
-      let totalNaik = stats.totalNaik;
-      let avgQ = totalNaik > 0 ? (stats.sumQueue / totalNaik) : 0;
-      let maxQ = stats.maxQueue;
+    let totalNaik = stats.totalNaik;
+    let avgQ = totalNaik > 0 ? (stats.sumQueue / totalNaik) : 0;
+    let maxQ = stats.maxQueue;
 
-      // Hitung Lama Waktu Operasional Wahana (dalam menit)
-      let openMins = (ride.openHour || 10) * 60 + (ride.openMinute || 0);
-      let closeMins = (ride.closeHour || 18) * 60 + (ride.closeMinute || 45);
-      let opMins = Math.max(1, closeMins - openMins);
+    // Hitung Lama Waktu Operasional Wahana (dalam menit)
+    let openMins = (ride.openHour || 10) * 60 + (ride.openMinute || 0);
+    let closeMins = (ride.closeHour || 18) * 60 + (ride.closeMinute || 45);
+    let opMins = Math.max(1, closeMins - openMins);
 
-      // Kalkulasi M/M/1 Rata-Rata Harian
-      let lambda = totalNaik / opMins; // Kedatangan per menit
-      let cycleTime = (ride.runtime || 5) + (ride.turnover || 2);
-      let mu = ride.capacity / cycleTime; // Pelayanan per menit
-      
-      if (ride.isContinuous) {
-          mu = ride.capacity / (ride.interval || 1); // Penyesuaian untuk sistem kontinyu
-      }
+    // Kalkulasi M/M/1 Rata-Rata Harian
+    let lambda = totalNaik / opMins; // Kedatangan per menit
+    let cycleTime = (ride.runtime || 5) + (ride.turnover || 2);
+    let mu = ride.capacity / cycleTime; // Pelayanan per menit
 
-      let rho = mu > 0 ? (lambda / mu) : 0;
-      let wTime = avgQ; // Waktu tunggu rata-rata harian yang nyata dialami agen
-      let Lq = lambda * wTime; // Menggunakan Hukum Little: Lq = lambda * W
+    if (ride.isContinuous) {
+      mu = ride.capacity / (ride.interval || 1); // Penyesuaian untuk sistem kontinyu
+    }
 
-      // Penentuan Status
-      let status = "Optimal";
-      if (rho >= 1.0) status = "Kritis";
-      else if (rho >= 0.85) status = "Sibuk";
-      else if (rho >= 0.65) status = "Moderat";
+    let rho = mu > 0 ? (lambda / mu) : 0;
+    let wTime = avgQ; // Waktu tunggu rata-rata harian yang nyata dialami agen
+    let Lq = lambda * wTime; // Menggunakan Hukum Little: Lq = lambda * W
 
-      row.set("Nama Wahana", rName);
-      row.set("Zona", ride.zone || 0);
-      row.set("Kategori", ride.rideCategory || "umum");
-      row.set("Kapasitas", ride.capacity);
-      row.set("Runtime (m)", ride.runtime);
-      row.set("Has FastTrack", ride.hasFastTrack ? "Ya" : "Tidak");
-      
-      // Matriks Hasil Ekstraksi
-      row.set("Total Pengunjung Naik", totalNaik);
-      row.set("Avg Antre (m)", avgQ.toFixed(2));
-      row.set("Max Antre (m)", maxQ.toFixed(2));
-      row.set("rho", rho.toFixed(3));
-      row.set("Lq", Lq.toFixed(2));
-      row.set("W (m)", wTime.toFixed(2));
-      row.set("Status", status);
+    // Penentuan Status
+    let status = "Optimal";
+    if (rho >= 1.0) status = "Kritis";
+    else if (rho >= 0.85) status = "Sibuk";
+    else if (rho >= 0.65) status = "Moderat";
+
+    row.set("Nama Wahana", rName);
+    row.set("Zona", ride.zone || 0);
+    row.set("Kategori", ride.rideCategory || "umum");
+    row.set("Kapasitas", ride.capacity);
+    row.set("Runtime (m)", ride.runtime);
+    row.set("Has FastTrack", ride.hasFastTrack ? "Ya" : "Tidak");
+
+    // Matriks Hasil Ekstraksi
+    row.set("Total Pengunjung Naik", totalNaik);
+    row.set("Avg Antre (m)", avgQ.toFixed(2));
+    row.set("Max Antre (m)", maxQ.toFixed(2));
+    row.set("rho", rho.toFixed(3));
+    row.set("Lq", Lq.toFixed(2));
+    row.set("W (m)", wTime.toFixed(2));
+    row.set("Status", status);
   }
 
   // ==========================================
@@ -1138,20 +1317,20 @@ function exportCSV() {
   // Hitung Avg Lq, Lq Maks, Avg Wq dari data wahana
   let sumLq = 0, maxLq = 0, sumWq = 0, rideCount = 0;
   for (let ride of simMap.rides) {
-      let rName = ride.rideName || ride.name;
-      let stats = rideDailyStats[rName];
-      if (!stats) continue;
-      let totalNaik = stats.totalNaik || 0;
-      let openMins = (ride.openHour || 10) * 60 + (ride.openMinute || 0);
-      let closeMins = (ride.closeHour || 18) * 60 + (ride.closeMinute || 45);
-      let opMins = Math.max(1, closeMins - openMins);
-      let lambda = totalNaik / opMins;
-      let avgQ = totalNaik > 0 ? (stats.sumQueue / totalNaik) : 0;
-      let lq = lambda * avgQ;
-      sumLq += lq;
-      if (lq > maxLq) maxLq = lq;
-      sumWq += avgQ;
-      rideCount++;
+    let rName = ride.rideName || ride.name;
+    let stats = rideDailyStats[rName];
+    if (!stats) continue;
+    let totalNaik = stats.totalNaik || 0;
+    let openMins = (ride.openHour || 10) * 60 + (ride.openMinute || 0);
+    let closeMins = (ride.closeHour || 18) * 60 + (ride.closeMinute || 45);
+    let opMins = Math.max(1, closeMins - openMins);
+    let lambda = totalNaik / opMins;
+    let avgQ = totalNaik > 0 ? (stats.sumQueue / totalNaik) : 0;
+    let lq = lambda * avgQ;
+    sumLq += lq;
+    if (lq > maxLq) maxLq = lq;
+    sumWq += avgQ;
+    rideCount++;
   }
   let avgLq = rideCount > 0 ? sumLq / rideCount : 0;
   let avgWq = rideCount > 0 ? sumWq / rideCount : 0;
@@ -1182,24 +1361,26 @@ function exportCSV() {
   // UNDUH KE-3 FILE SECARA OTOMATIS
   // ==========================================
   let ts = Math.floor(Date.now() / 1000);
-  
+
   save(tableVisitor, `Data_Pengunjung_Dufan_${ts}.csv`);
-  
+
   setTimeout(() => {
-      save(tableRide, `Data_Wahana_Dufan_${ts}.csv`);
-  }, 500); 
-  
+    save(tableRide, `Data_Wahana_Dufan_${ts}.csv`);
+  }, 500);
+
   setTimeout(() => {
-      save(tableMeta, `Data_Meta_Dufan_${ts}.csv`);
-  }, 1000); 
+    save(tableMeta, `Data_Meta_Dufan_${ts}.csv`);
+  }, 1000);
 }
 
 function drawDisplay() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
   for (let node of nodes) {
     if (dist(node.x, node.y, mouseX, mouseY) < HOVER_RADIUS && node.type === "ride") {
       const padding = 16;
       const info = node.getDisplayInfo();
-      
+
       textSize(12);
       textLeading(18);
       const lines = info.split("\n").length;
@@ -1207,64 +1388,64 @@ function drawDisplay() {
 
       // Dimensi dari utility.js (RG_X_END - RG_X_START)
       const graphW = 100;
-      const graphH = 50; 
-      
+      const graphH = 50;
+
       const headerHeight = 35;
       const w = 270;
       const h = headerHeight + textHeight + graphH + padding * 2 + 10;
 
-      // 🔥 KUNCI POSISI DI POJOK KIRI ATAS (Di bawah tombol Toggle Panel)
+      // Kunci posisi di pojok kiri atas di bawah topbar
       const x = 20;
-      const y = 70;
+      const y = 56;
 
       push();
       // ===== SHADOW =====
       noStroke();
-      fill(0, 0, 0, 120);
-      rect(x + 5, y + 5, w, h, 12);
+      fill(0, 0, 0, isDark ? 120 : 35);
+      rect(x + 4, y + 4, w, h, 14);
 
       // ===== GLASS PANEL =====
-      fill(20, 22, 28, 240);
-      stroke(255, 255, 255, 30);
+      fill(isDark ? color(24, 23, 30, 245) : color(255, 255, 255, 245));
+      stroke(isDark ? color(255, 255, 255, 30) : color(0, 0, 0, 25));
       strokeWeight(1);
-      rect(x, y, w, h, 12);
+      rect(x, y, w, h, 14);
 
       // ===== HEADER =====
       const isOpen = node.isOpen();
       const accent = isOpen ? color(34, 197, 94) : color(239, 68, 68);
 
-      fill(red(accent), green(accent), blue(accent), 40);
+      fill(red(accent), green(accent), blue(accent), isDark ? 35 : 25);
       noStroke();
-      rect(x, y, w, headerHeight, 12, 12, 0, 0);
+      rect(x, y, w, headerHeight, 14, 14, 0, 0);
 
-      fill(255);
+      fill(isDark ? 255 : 20);
       textSize(13);
       textStyle(BOLD);
       textAlign(LEFT, CENTER);
-      text(node.rideName || node.name, x + padding, y + headerHeight/2);
+      text(node.rideName || node.name, x + padding, y + headerHeight / 2);
 
       textSize(11);
       textAlign(RIGHT, CENTER);
       fill(accent);
-      text(isOpen ? "● OPEN" : "● CLOSED", x + w - padding, y + headerHeight/2);
+      text(isOpen ? "● BUKA" : "● TUTUP", x + w - padding, y + headerHeight / 2);
 
       // ===== BODY TEXT =====
       textAlign(LEFT, TOP);
-      fill(220);
+      fill(isDark ? color(215, 210, 225) : color(45, 42, 55));
       textSize(12);
       textStyle(NORMAL);
       text(info, x + padding, y + headerHeight + 10);
 
       // ===== GRAPH SECTION =====
-      const graphX = x + (w - graphW) / 2; 
+      const graphX = x + (w - graphW) / 2;
       const graphY = y + headerHeight + textHeight + 15;
-      
-      fill(15, 15, 20, 150);
+
+      fill(isDark ? color(16, 15, 21, 180) : color(245, 242, 249, 200));
       noStroke();
       rect(graphX - 10, graphY - 10, graphW + 20, graphH + 20, 8);
 
       push();
-      translate(graphX - RG_X_START, graphY - RG_Y_START); 
+      translate(graphX - RG_X_START, graphY - RG_Y_START);
       node.drawGraph();
       pop();
 
@@ -1275,27 +1456,39 @@ function drawDisplay() {
 }
 
 function drawRunning() {
-  strokeWeight(0.5);
-  stroke(0);
-  if (isRunning) {
-    fill("#2a1");
-    triangle(10, 7.5, 20, 15, 10, 22.5);
-  } else {
-    fill("#f08205");
-    rect(8, 7.5, 5, 15);
-    rect(16, 7.5, 5, 15);
-  }
+  push();
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const rx = 20, ry = 18;
+  const statusTxt = isRunning ? "Simulating" : "Paused";
+
+  textSize(11);
+  textStyle(BOLD);
+  const stw = textWidth(statusTxt) + 26;
+
+  fill(isDark ? color(24, 23, 30, 220) : color(255, 255, 255, 230));
+  stroke(isDark ? color(255, 255, 255, 25) : color(0, 0, 0, 20));
+  strokeWeight(1);
+  rect(rx, ry, stw, 26, 13);
+
+  // Status dot
+  noStroke();
+  fill(isRunning ? color(34, 197, 94) : color(245, 158, 11));
+  circle(rx + 11, ry + 13, 7);
+
+  fill(isDark ? color(230, 225, 240) : color(28, 27, 32));
+  textAlign(LEFT, CENTER);
+  text(statusTxt, rx + 20, ry + 13);
+  pop();
 }
 
 function drawStats() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const panelW = 1240;
-  const panelH = 215;
+  const panelH = 224;
   const panelX = (WIDTH - panelW) / 2;
-  const panelY = HEIGHT - panelH - 2;
+  const panelY = HEIGHT - panelH - 12;
 
   // ===== DATA CALCULATIONS =====
-  // currentVisitors = orang yang benar-benar ada di dalam taman saat ini
-  // Exclude: ENTERING (belum masuk), LEFT (batal), EXITED (sudah keluar), isSplitPart (pecahan grup, sudah dihitung dari induk)
   let currentVisitors = 0;
   for (let agt of agents) {
     if (
@@ -1315,220 +1508,358 @@ function drawStats() {
   const satisfactionScore = calculateSatisfaction(rawAvgRides, rawAvgQueue);
   const displayMinRides = minRidesRecord === Infinity ? 0 : minRidesRecord;
 
-  // ==========================================================
-  // 🔥 PERHITUNGAN RHO GLOBAL UNTUK DITAMPILKAN DI KARTU 🔥
-  // Gunakan variabel global — hanya diperbarui saat simulasi berjalan
-  // ==========================================================
   if (isRunning) {
-    // 1. Ambil Rho Real-Time saat ini
     let macroMetrics = getGlobalQueueMetrics(simMap);
     if (macroMetrics) {
-        currentGlobalRho = macroMetrics.globalRho;
+      currentGlobalRho = macroMetrics.globalRho;
     }
 
-    // 2. Ambil Rata-rata Rho Harian (Kumulatif)
     if (globalRhoHistory.length > 0) {
-        let sumRho = globalRhoHistory.reduce((a, b) => a + b, 0);
-        avgDailyRho = sumRho / globalRhoHistory.length;
+      let sumRho = globalRhoHistory.reduce((a, b) => a + b, 0);
+      avgDailyRho = sumRho / globalRhoHistory.length;
     }
   }
-  // ==========================================================
 
   push();
 
-  // ===== PANEL BASE =====
-  // Outer glow
+  // ===== PANEL CONTAINER BASE (Material Design 3 Surface Container) =====
+  // Ambient drop shadow
   noStroke();
-  fill(30, 100, 200, 18);
-  rect(panelX - 4, panelY - 4, panelW + 8, panelH + 8, 22);
+  fill(0, 0, 0, isDark ? 80 : 18);
+  rect(panelX + 2, panelY + 3, panelW, panelH, 20);
 
-  // Main panel bg
-  fill(5, 10, 22, 235);
-  stroke(56, 140, 255, 50);
-  strokeWeight(1);
-  rect(panelX, panelY, panelW, panelH, 18);
+  // Main panel background (M3 elevated glassmorphic surface)
+  fill(isDark ? color(15, 23, 42, 246) : color(255, 255, 255, 250));
+  stroke(isDark ? color(148, 163, 184, 45) : color(0, 114, 245, 30));
+  strokeWeight(1.2);
+  rect(panelX, panelY, panelW, panelH, 20);
 
-  // Blueprint grid inside panel (subtle)
-  stroke(30, 70, 160, 22);
-  strokeWeight(0.5);
-  for (let gx = panelX + 20; gx < panelX + panelW; gx += 20) {
-    line(gx, panelY, gx, panelY + panelH);
-  }
-  for (let gy = panelY + 10; gy < panelY + panelH; gy += 20) {
-    line(panelX, gy, panelX + panelW, gy);
-  }
-
-  // Top accent bar with gradient feel
+  // Top Material 3 Primary Accent Stripe
+  fill(isDark ? color(92, 179, 255) : color(0, 114, 245));
   noStroke();
-  fill(56, 140, 255, 60);
-  rect(panelX, panelY, panelW, 3, 18, 18, 0, 0);
+  rect(panelX + 16, panelY, panelW - 32, 3.5, 2);
 
-  // Corner brackets (blueprint style)
-  stroke(56, 189, 248, 80);
-  strokeWeight(1.5);
-  noFill();
-  const bk = 12; // bracket size
-  // top-left
-  line(panelX + 1, panelY + bk + 3, panelX + 1, panelY + 3);
-  line(panelX + 1, panelY + 3, panelX + bk + 1, panelY + 3);
-  // top-right
-  line(panelX + panelW - bk - 1, panelY + 3, panelX + panelW - 1, panelY + 3);
-  line(panelX + panelW - 1, panelY + 3, panelX + panelW - 1, panelY + bk + 3);
-  // bottom-left
-  line(panelX + 1, panelY + panelH - bk - 3, panelX + 1, panelY + panelH - 3);
-  line(panelX + 1, panelY + panelH - 3, panelX + bk + 1, panelY + panelH - 3);
-  // bottom-right
-  line(panelX + panelW - bk - 1, panelY + panelH - 3, panelX + panelW - 1, panelY + panelH - 3);
-  line(panelX + panelW - 1, panelY + panelH - 3, panelX + panelW - 1, panelY + panelH - bk - 3);
+  // ===== HEADER BAR: TELEMETRI & STATUS BADGES =====
+  const headY = panelY + 14;
 
-  // ===== HEADER LABEL =====
-  noStroke();
-  fill(56, 189, 248, 200);
-  textAlign(LEFT, TOP);
-  textSize(8);
+  // Title with Spark Icon Badge
+  fill(isDark ? color(92, 179, 255) : color(0, 114, 245));
+  textAlign(LEFT, CENTER);
+  textSize(12.5);
   textStyle(BOLD);
-  text("▸ PARK GLOBAL STATISTICS", panelX + 18, panelY + 10);
+  text("✦ STATISTIK GLOBAL TAMAN", panelX + 20, headY + 8);
 
-  // Vertical separator line between cards and graphs
-  const sepX = panelX + panelW - 400;
-  stroke(56, 140, 255, 35);
+  // Mode Tag (M3 Assist Chip)
+  const isHierarchical = typeof window !== 'undefined' && !window.location.pathname.includes('noHierarchical');
+  const modeTag = isHierarchical ? "HIERARCHICAL ROUTING" : "NON-HIERARCHICAL ROUTING";
+  fill(isDark ? color(255, 255, 255, 16) : color(0, 114, 245, 12));
+  stroke(isDark ? color(255, 255, 255, 32) : color(0, 114, 245, 28));
+  strokeWeight(0.8);
+  rect(panelX + 225, headY - 1, 165, 20, 10);
+  noStroke();
+  fill(isDark ? color(203, 213, 225) : color(0, 85, 185));
+  textSize(8.5);
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+  text(modeTag, panelX + 225 + 82.5, headY + 9);
+
+  // Status Badge (Right-aligned items)
+  let statusBg, statusFg, statusTxt;
+  if (isRunning) {
+    statusBg = isDark ? color(5, 150, 105, 45) : color(209, 250, 229);
+    statusFg = isDark ? color(52, 211, 153) : color(5, 150, 105);
+    statusTxt = "RUNNING";
+  } else if (currentHour >= parkCloseHour && agents.length === 0 && frameRunning > 0) {
+    statusBg = isDark ? color(30, 58, 138, 45) : color(219, 234, 254);
+    statusFg = isDark ? color(96, 165, 250) : color(37, 99, 235);
+    statusTxt = "SELESAI";
+  } else if (frameRunning > 0) {
+    statusBg = isDark ? color(180, 83, 9, 45) : color(254, 243, 199);
+    statusFg = isDark ? color(251, 191, 36) : color(217, 119, 6);
+    statusTxt = "PAUSED";
+  } else {
+    statusBg = isDark ? color(51, 65, 85, 45) : color(241, 245, 249);
+    statusFg = isDark ? color(148, 163, 184) : color(100, 116, 139);
+    statusTxt = "READY";
+  }
+
+  // Draw Status Pill (M3 Status Badge)
+  const statPillW = 86;
+  const statPillX = panelX + panelW - 420 - statPillW;
+  fill(statusBg);
+  stroke(statusFg);
+  strokeWeight(0.9);
+  rect(statPillX, headY - 1, statPillW, 20, 10);
+
+  // Status Dot
+  noStroke();
+  fill(statusFg);
+  circle(statPillX + 12, headY + 9, 6);
+  textSize(8.5);
+  textStyle(BOLD);
+  textAlign(LEFT, CENTER);
+  text(statusTxt, statPillX + 22, headY + 9);
+
+  // Live in-park Attendance Badge
+  const attW = 108;
+  const attX = statPillX - attW - 10;
+  fill(isDark ? color(16, 185, 129, 25) : color(209, 250, 229, 200));
+  stroke(isDark ? color(52, 211, 153, 90) : color(5, 150, 105, 90));
+  strokeWeight(0.8);
+  rect(attX, headY - 1, attW, 20, 10);
+  noStroke();
+  fill(isDark ? color(52, 211, 153) : color(5, 150, 105));
+  textSize(9);
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+  text(`👥 ${currentVisitors} di Taman`, attX + attW / 2, headY + 9);
+
+  // Subtle divider between cards and graphs
+  const sepX = panelX + panelW - 405;
+  stroke(isDark ? color(148, 163, 184, 40) : color(0, 114, 245, 30));
   strokeWeight(1);
   drawingContext.setLineDash([4, 4]);
-  line(sepX, panelY + 18, sepX, panelY + panelH - 10);
+  line(sepX, panelY + 12, sepX, panelY + panelH - 12);
   drawingContext.setLineDash([]);
+
+  // Header for Distribution Graphs zone
+  fill(isDark ? color(92, 179, 255) : color(0, 114, 245));
+  textSize(10);
+  textStyle(BOLD);
+  textAlign(LEFT, CENTER);
+  text("▸ DISTRIBUSI WAKTU & ANTREAN", sepX + 16, headY + 8);
 
   pop();
 
-  // ===== STAT CARDS =====
-  const cardW = 120;
-  const cardH = 160;
-  const gapX = 10;
-  const totalCardsW = cardW * 8 + gapX * 7;
-  const cardsAreaW = panelW - 420;
+  // ===== 4 MATERIAL DESIGN 3 METRIC CARDS =====
   const startX = panelX + 14;
-  const cardY = panelY + 24;
+  const cardsAreaW = (sepX - 14) - startX;
+  const gapX = 10;
+  const cardW = floor((cardsAreaW - gapX * 3) / 4);
+  const cardH = 154;
+  const cardY = panelY + 42;
 
-  // Cards use fixed spacing to fit 8 across left zone
-  const compactW = floor((cardsAreaW - gapX * 7) / 8);
+  let satContext = satisfactionScore >= 80 ? "Sangat Puas" : (satisfactionScore >= 60 ? "Puas" : "Cukup");
+  let satColor = satisfactionScore >= 80 ? color(16, 185, 129) : (satisfactionScore >= 60 ? color(0, 114, 245) : color(245, 158, 11));
 
-  let liveRhoText = `(LIVE: ${(currentGlobalRho*100).toFixed(0)}%)`;
+  // Card 1: TOTAL & AKTIF (Pengunjung)
+  const quotaPct = Math.min(100, (totalVisitors / Math.max(1, TOTAL_N)) * 100);
+  drawM3StatCard(
+    "TOTAL PENGUNJUNG",
+    totalVisitors,
+    "Orang Masuk ke Taman",
+    "👥",
+    color(0, 114, 245),
+    `🟢 ${currentVisitors} Aktif di Taman`,
+    color(16, 185, 129),
+    `Target Kuota: ${TOTAL_N} Agen`,
+    startX + (cardW + gapX) * 0,
+    cardY,
+    cardW,
+    cardH,
+    quotaPct
+  );
 
-  drawStatCard("TOTAL\nVISITORS",  totalVisitors,             "👥", color(56,189,248),   startX + (compactW+gapX)*0, cardY, compactW, cardH);
-  drawStatCard("IN\nPARK NOW",     currentVisitors,           "🏃", color(34,197,94),    startX + (compactW+gapX)*1, cardY, compactW, cardH);
-  drawStatCard(`AVG RHO\n${liveRhoText}`, (avgDailyRho*100).toFixed(1) + "%", "📈", color(245, 158, 11), startX + (compactW+gapX)*2, cardY, compactW, cardH);
-  drawStatCard("MIN\nRIDES",       displayMinRides,           "🔽", color(148,163,184),  startX + (compactW+gapX)*3, cardY, compactW, cardH);
-  drawStatCard("AVG\nRIDES",       avgRides,                  "🎢", color(56,189,248),   startX + (compactW+gapX)*4, cardY, compactW, cardH);
-  drawStatCard("MAX\nRIDES",       maxRidesRecord,            "🔝", color(250,204,21),   startX + (compactW+gapX)*5, cardY, compactW, cardH);
-  drawStatCard("AVG QUEUE\n(min)", avgQueue,                  "⏱", color(249,115,22),   startX + (compactW+gapX)*6, cardY, compactW, cardH);
-  drawStatCard("SATISFACTION",     satisfactionScore + "%",   "⭐", color(34,197,94),    startX + (compactW+gapX)*7, cardY, compactW, cardH);
+  // Card 2: WAHANA DINAIKI (Pengalaman)
+  drawM3StatCard(
+    "PENGALAMAN WAHANA",
+    avgRides,
+    "Rata-rata Wahana / Org",
+    "🎢",
+    color(139, 92, 246),
+    `Min: ${displayMinRides}  •  Max: ${maxRidesRecord}`,
+    color(139, 92, 246),
+    `Total: ${totalRides} Trip Terlayani`,
+    startX + (cardW + gapX) * 1,
+    cardY,
+    cardW,
+    cardH
+  );
+
+  // Card 3: WAKTU ANTREAN (M/M/1)
+  const rhoPct = Math.min(100, avgDailyRho * 100);
+  drawM3StatCard(
+    "WAKTU ANTREAN M/M/1",
+    avgQueue + "m",
+    "Rata-rata per Wahana",
+    "⏱",
+    color(245, 158, 11),
+    `Beban ρ: ${(avgDailyRho * 100).toFixed(1)}% (Live: ${(currentGlobalRho * 100).toFixed(0)}%)`,
+    color(245, 158, 11),
+    "Beban Utilisasi Antrean",
+    startX + (cardW + gapX) * 2,
+    cardY,
+    cardW,
+    cardH,
+    rhoPct
+  );
+
+  // Card 4: INDEKS KEPUASAN (QoS)
+  drawM3StatCard(
+    "INDEKS KEPUASAN",
+    satisfactionScore + "%",
+    "Skor Kepuasan Agen",
+    "⭐",
+    satColor,
+    `★ ${satContext} ★`,
+    satColor,
+    `Selesai: ${exitedVisitors} Pengunjung`,
+    startX + (cardW + gapX) * 3,
+    cardY,
+    cardW,
+    cardH,
+    satisfactionScore
+  );
 
   // ===== GRAPHS (right zone) =====
   const graphZoneX = sepX + 16;
   const graphZoneW = panelX + panelW - graphZoneX - 16;
-  const graphW3 = floor((graphZoneW - 30) / 3);
-  const graphBaseY = panelY + panelH - 16;
+  const graphW3 = floor((graphZoneW - 20) / 3);
+  const graphBaseY = panelY + panelH - 18;
 
-  drawGraphModern("Time in Park",   timeSpentHist,   graphZoneX,                    graphBaseY, 30,  graphW3, 60);
-  drawGraphModern("Missed Frac.",   agtsLeftHist,    graphZoneX + graphW3 + 15,     graphBaseY, 1,   graphW3, 60);
-  drawGraphModern("Avg Queue (m)",  avgQueueTimeHist, graphZoneX + (graphW3+15)*2,   graphBaseY, 10, graphW3, 60);
+  drawGraphModern("Waktu di Taman", timeSpentHist, graphZoneX, graphBaseY, 30, graphW3, 62);
+  drawGraphModern("Fraksi Batal", agtsLeftHist, graphZoneX + graphW3 + 10, graphBaseY, 1, graphW3, 62);
+  drawGraphModern("Antrean Rata2", avgQueueTimeHist, graphZoneX + (graphW3 + 10) * 2, graphBaseY, 10, graphW3, 62);
 }
 
-function drawStatCard(title, value, icon, accentCol, x, y, w, h) {
+function drawM3StatCard(title, value, unit, icon, accentCol, badgeText, badgeCol, subInfo, x, y, w, h, progressPct) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   push();
 
-  // Shadow
+  // Outer ambient shadow
   noStroke();
-  fill(0, 0, 0, 80);
-  rect(x + 3, y + 3, w, h, 10);
+  fill(0, 0, 0, isDark ? 65 : 14);
+  rect(x + 2, y + 2, w, h, 14);
 
-  // Card background
-  fill(8, 16, 34, 230);
-  stroke(red(accentCol), green(accentCol), blue(accentCol), 45);
+  // Card background (M3 Elevated Surface)
+  fill(isDark ? color(22, 30, 49, 240) : color(248, 250, 255, 250));
+  stroke(red(accentCol), green(accentCol), blue(accentCol), isDark ? 55 : 35);
   strokeWeight(1);
-  rect(x, y, w, h, 10);
+  rect(x, y, w, h, 14);
 
-  // Top accent line
+  // Top accent colored line
   noStroke();
-  fill(red(accentCol), green(accentCol), blue(accentCol), 160);
-  rect(x, y, w, 2, 10, 10, 0, 0);
+  fill(red(accentCol), green(accentCol), blue(accentCol), 220);
+  rect(x, y, w, 3.5, 14, 14, 0, 0);
 
-  // Subtle inner glow at top
-  fill(red(accentCol), green(accentCol), blue(accentCol), 12);
-  noStroke();
-  rect(x, y, w, h * 0.45, 10, 10, 0, 0);
+  // Icon Badge Container (24x24)
+  fill(red(accentCol), green(accentCol), blue(accentCol), isDark ? 30 : 20);
+  rect(x + 12, y + 12, 24, 24, 7);
 
   // Icon
-  textAlign(CENTER, TOP);
+  textAlign(CENTER, CENTER);
   textStyle(NORMAL);
-  textSize(18);
-  noStroke();
-  fill(255);
-  text(icon, x + w / 2, y + 10);
+  textSize(13);
+  fill(isDark ? 255 : 20);
+  text(icon, x + 24, y + 24);
 
-  // Title (multi-line friendly with \n)
-  fill(red(accentCol), green(accentCol), blue(accentCol), 180);
-  textSize(8);
+  // Title / Metric Name
+  fill(isDark ? color(203, 213, 225) : color(71, 85, 105));
+  textSize(9);
   textStyle(BOLD);
-  textAlign(CENTER, TOP);
-  textLeading(10);
-  // Replace \n with actual newline
-  text(title, x + w / 2, y + 32);
+  textAlign(LEFT, CENTER);
+  text(title, x + 42, y + 24);
 
-  // Value
-  noStroke();
-  fill(230, 240, 255);
+  // Big Metric Value
+  fill(isDark ? color(248, 250, 252) : color(15, 23, 42));
   textStyle(BOLD);
-  textSize(str(value).length > 5 ? 16 : 20);
-  textAlign(CENTER, BOTTOM);
-  text(value, x + w / 2, y + h - 8);
+  const valStr = str(value);
+  textSize(valStr.length > 6 ? 18 : 21);
+  textAlign(LEFT, CENTER);
+  text(value, x + 14, y + 58);
+
+  // Unit / Subtitle
+  fill(isDark ? color(148, 163, 184) : color(100, 116, 139));
+  textSize(8.5);
+  textStyle(NORMAL);
+  textAlign(LEFT, CENTER);
+  text(unit, x + 14, y + 78);
+
+  // Secondary Tonal Badge / Chip
+  fill(red(badgeCol), green(badgeCol), blue(badgeCol), isDark ? 35 : 20);
+  stroke(red(badgeCol), green(badgeCol), blue(badgeCol), isDark ? 70 : 45);
+  strokeWeight(0.8);
+  rect(x + 10, y + 92, w - 20, 21, 10.5);
+
+  noStroke();
+  fill(badgeCol);
+  textSize(8.5);
+  textStyle(BOLD);
+  textAlign(CENTER, CENTER);
+  text(badgeText, x + w / 2, y + 102.5);
+
+  // Progress Bar or Micro Info
+  if (progressPct !== undefined) {
+    const barW = w - 24;
+    const barX = x + 12;
+    const barY = y + 124;
+    // Track
+    fill(isDark ? color(255, 255, 255, 15) : color(0, 0, 0, 10));
+    rect(barX, barY, barW, 4.5, 2.25);
+    // Fill
+    fill(red(accentCol), green(accentCol), blue(accentCol));
+    const fillW = constrain((progressPct / 100) * barW, 0, barW);
+    rect(barX, barY, fillW, 4.5, 2.25);
+
+    // Sub-info text
+    fill(isDark ? color(148, 163, 184) : color(100, 116, 139));
+    textSize(8);
+    textAlign(CENTER, CENTER);
+    text(subInfo, x + w / 2, y + 141);
+  } else {
+    fill(isDark ? color(148, 163, 184) : color(100, 116, 139));
+    textSize(8.5);
+    textAlign(CENTER, CENTER);
+    text(subInfo, x + w / 2, y + 132);
+  }
 
   pop();
 }
 
 function drawGraphModern(title, data, x, y, defMax, gW = GG_WIDTH, gH = GG_HEIGHT) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const maxHist = max(defMax, int(ceil(max(data.length > 0 ? data : [defMax]))));
   const minHist = 0;
 
   push();
 
-  // Background box
+  // Background box (M3 Elevated Container)
   noStroke();
-  fill(4, 10, 24, 200);
-  stroke(56, 140, 255, 30);
+  fill(isDark ? color(20, 28, 48, 230) : color(245, 248, 255, 240));
+  stroke(isDark ? color(148, 163, 184, 35) : color(0, 114, 245, 25));
   strokeWeight(1);
-  rect(x - 8, y - gH - 22, gW + 16, gH + 30, 8);
+  rect(x - 6, y - gH - 22, gW + 12, gH + 30, 10);
 
   // Blueprint grid inside graph
-  stroke(30, 70, 160, 30);
+  stroke(isDark ? color(92, 179, 255, 25) : color(0, 114, 245, 20));
   strokeWeight(0.5);
-  for (let i = 1; i <= 3; i++) {
-    let gy = y - (gH / 4) * i;
+  for (let i = 1; i <= 2; i++) {
+    let gy = y - (gH / 3) * i;
     drawingContext.setLineDash([3, 3]);
     line(x, gy, x + gW, gy);
   }
   drawingContext.setLineDash([]);
 
   // Axes
-  stroke(56, 140, 255, 60);
+  stroke(isDark ? color(92, 179, 255, 50) : color(0, 114, 245, 45));
   strokeWeight(1);
   line(x, y, x, y - gH);
   line(x, y, x + gW, y);
 
   // Y-axis max label
   noStroke();
-  fill(56, 189, 248, 120);
-  textSize(7);
+  fill(isDark ? color(148, 163, 184) : color(100, 116, 139));
+  textSize(7.5);
   textAlign(RIGHT, CENTER);
   text(maxHist, x - 3, y - gH);
 
   // Zero label
-  fill(56, 189, 248, 80);
   text("0", x - 3, y);
 
   // Area fill under graph line
   if (data.length > 1) {
     noStroke();
-    fill(56, 189, 248, 18);
+    fill(isDark ? color(92, 179, 255, 22) : color(0, 114, 245, 18));
     beginShape();
     vertex(x, y);
     for (let cnt = 0; cnt < MAX_AGT_SAMPLES; cnt++) {
@@ -1545,8 +1876,8 @@ function drawGraphModern(title, data, x, y, defMax, gW = GG_WIDTH, gH = GG_HEIGH
     // Graph line — glowing style
     noFill();
     // glow pass
-    stroke(56, 189, 248, 40);
-    strokeWeight(4);
+    stroke(isDark ? color(92, 179, 255, 45) : color(0, 114, 245, 35));
+    strokeWeight(3.5);
     beginShape();
     for (let cnt = 0; cnt < MAX_AGT_SAMPLES; cnt++) {
       let i = cnt + max(data.length - MAX_AGT_SAMPLES, 0);
@@ -1557,8 +1888,9 @@ function drawGraphModern(title, data, x, y, defMax, gW = GG_WIDTH, gH = GG_HEIGH
       }
     }
     endShape();
+
     // sharp line
-    stroke(100, 200, 255, 220);
+    stroke(isDark ? color(147, 197, 253) : color(0, 114, 245));
     strokeWeight(1.5);
     beginShape();
     for (let cnt = 0; cnt < MAX_AGT_SAMPLES; cnt++) {
@@ -1574,11 +1906,11 @@ function drawGraphModern(title, data, x, y, defMax, gW = GG_WIDTH, gH = GG_HEIGH
 
   // Title
   noStroke();
-  fill(56, 189, 248, 190);
-  textSize(8);
+  fill(isDark ? color(203, 213, 225) : color(71, 85, 105));
+  textSize(8.5);
   textStyle(BOLD);
   textAlign(CENTER, BOTTOM);
-  text(title.toUpperCase(), x + gW / 2, y - gH - 8);
+  text(title.toUpperCase(), x + gW / 2, y - gH - 7);
 
   pop();
 }
@@ -1627,7 +1959,7 @@ function createMap() {
   // ==============================================================
   // KONFIGURASI PARAMETER WAHANA BERDASARKAN DATA EXCEL (DEFAULT)
   // ==============================================================
-  
+
   // ZONA 1 (Area Depan & Kiri Bawah)
   n1.zone = 1; n1.rideCategory = "dewasa"; n1.isContinuous = false; n1.hasFastTrack = false; n1.minHeight = 125;
   n1.openHour = 10; n1.openMinute = 0; n1.closeHour = 18; n1.closeMinute = 45;
@@ -1796,8 +2128,8 @@ function createMap() {
 
   // set the global vars
   nodes = [e, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, n26, n27, n28, n29, n30, n31, n32, n33];
-  connections = [[0, 1], [6, 8], [6, 11], [8, 11], [3, 19], [3, 20], [3, 16], [0, 2], [1, 2], [0, 4], [4, 5], [5, 6], [8, 4], [7, 10], [10, 12], [5, 8], [6,9], [9, 11], [11, 14], [8, 14], [11, 13], [13, 14], [13, 15], [14, 15], [12, 15], [10, 15], [7, 15], [7, 12], [13, 16], [16, 17], [11, 17], [13, 17], [9, 17], [17, 18], [16, 18], [18, 19], [16, 19], [16, 20], [16, 21], [20, 21], [21, 22], [20, 22], [22, 23], [21, 23], [23, 24], [20, 24], [15, 25], [1, 25], [2, 25], [2, 15], [2, 14], [25, 26], [23, 26], [24, 26], [26, 27], [24, 27], [27, 28], [26, 28], [28, 29], [25, 29], [1, 29], [29, 30], [28, 30], [27, 30], [1, 30], [30, 31], [27, 31], [27, 32], [24, 33], [32, 33], [31, 33]];
-  
+  connections = [[0, 1], [6, 8], [6, 11], [8, 11], [3, 19], [3, 20], [3, 16], [0, 2], [1, 2], [0, 4], [4, 5], [5, 6], [8, 4], [7, 10], [10, 12], [5, 8], [6, 9], [9, 11], [11, 14], [8, 14], [11, 13], [13, 14], [13, 15], [14, 15], [12, 15], [10, 15], [7, 15], [7, 12], [13, 16], [16, 17], [11, 17], [13, 17], [9, 17], [17, 18], [16, 18], [18, 19], [16, 19], [16, 20], [16, 21], [20, 21], [21, 22], [20, 22], [22, 23], [21, 23], [23, 24], [20, 24], [15, 25], [1, 25], [2, 25], [2, 15], [2, 14], [25, 26], [23, 26], [24, 26], [26, 27], [24, 27], [27, 28], [26, 28], [28, 29], [25, 29], [1, 29], [29, 30], [28, 30], [27, 30], [1, 30], [30, 31], [27, 31], [27, 32], [24, 33], [32, 33], [31, 33]];
+
   simMap = new SimMap(nodes, connections);
 }
 
@@ -1842,15 +2174,15 @@ function gammaArrival(t) {
 
   const k = 2.0;      // Bentuk kurva (alpha)
   const lambda = 2.0; // Kecepatan kurva turun (rate)
-  
+
   // Nilai probabilitas paling tinggi pada kurva Gamma(2.0, 1.5)
   // Mode (puncak) = (k - 1) / lambda
   const mode = (k - 1) / lambda;
-  const maxProb = Math.pow(lambda, k) * Math.pow(mode, k - 1) * Math.exp(-lambda * mode); 
+  const maxProb = Math.pow(lambda, k) * Math.pow(mode, k - 1) * Math.exp(-lambda * mode);
 
   // Hitung pembilang dari rumus PDF Distribusi Gamma
   const numerator = Math.pow(lambda, k) * Math.pow(t, k - 1) * Math.exp(-lambda * t);
-  
+
   // Membagi dengan maxProb memastikan kurva menyentuh batas mutlak 1.0
   return numerator / maxProb;
 }
@@ -1860,7 +2192,7 @@ function addAgents() {
 
   while (arrivalSchedule.length > 0 && secondsInSim >= arrivalSchedule[0]) {
     const typeRNG = Math.random();
-    
+
     let type = "SOLO";
     let size = 1;
     let numAdults = 1;
@@ -1884,7 +2216,7 @@ function addAgents() {
     } else {
       type = "GROUP_FAMILY";
       size = Math.floor(Math.random() * 3) + 2; // 2, 3, atau 4 orang
-      
+
       if (size === 2) {
         numAdults = 1; numChildren = 1;
       } else if (size === 3) {
@@ -1926,43 +2258,43 @@ function removeAgents() {
   // 1. Hitung agen batal masuk (LEFT)
   let leftAgents = agents.filter((agt) => agt.agentState == AgentStates.LEFT);
   for (let agt of leftAgents) {
-    if (!agt.isSplitPart) { 
-      totalAgtsLeft += (agt.groupSize || agt.size || 1); 
+    if (!agt.isSplitPart) {
+      totalAgtsLeft += (agt.groupSize || agt.size || 1);
     }
   }
 
   // 🔥 FITUR BARU: MENGAMBIL DATA UNTUK EXPORT CSV SEBELUM DIHAPUS 🔥
   for (let agt of agents) {
-      if ((agt.agentState == AgentStates.EXITED || agt.agentState == AgentStates.LEFT) && !agt.isSplitPart) {
-          
-          let h = Math.floor(currentHour).toString().padStart(2, '0');
-          let m = Math.floor(currentMinute).toString().padStart(2, '0');
-          let exitTimeStr = `${h}:${m}`;
-          
-          // Format daftar wahana dan antrean
-          let rideSequence = agt.rideHistoryLog.map(r => `${r.name} (${r.time})`).join(" -> ");
-          let queueSequence = agt.rideHistoryLog.map(r => `${r.name}: ${r.queue}m`).join(" | ");
-          
-          // 🔥 HITUNG RATA-RATA ANTREAN INDIVIDU PENGUNJUNG INI 🔥
-          let totalQueueMins = agt.rideHistoryLog.reduce((sum, r) => sum + r.queue, 0);
-          let individualAvgQueue = agt.rideHistoryLog.length > 0 ? (totalQueueMins / agt.rideHistoryLog.length).toFixed(2) : 0;
-          
-          let fullType = agt.type;
-          if (agt.priority) fullType += " (FastTrack)";
-          
-          agentExportData.push({
-              id: agt.id,
-              type: fullType,
-              size: agt.size,
-              minHeight: agt.minHeightGroup,
-              totalRides: agt.rideHistoryLog.length,
-              individualAvgQueue: individualAvgQueue, // Data baru masuk!
-              entryTime: agt.entryTimeStr,
-              exitTime: exitTimeStr,
-              rideList: rideSequence || "Tidak naik apa-apa",
-              queueList: queueSequence || "-"
-          });
-      }
+    if ((agt.agentState == AgentStates.EXITED || agt.agentState == AgentStates.LEFT) && !agt.isSplitPart) {
+
+      let h = Math.floor(currentHour).toString().padStart(2, '0');
+      let m = Math.floor(currentMinute).toString().padStart(2, '0');
+      let exitTimeStr = `${h}:${m}`;
+
+      // Format daftar wahana dan antrean
+      let rideSequence = agt.rideHistoryLog.map(r => `${r.name} (${r.time})`).join(" -> ");
+      let queueSequence = agt.rideHistoryLog.map(r => `${r.name}: ${r.queue}m`).join(" | ");
+
+      // 🔥 HITUNG RATA-RATA ANTREAN INDIVIDU PENGUNJUNG INI 🔥
+      let totalQueueMins = agt.rideHistoryLog.reduce((sum, r) => sum + r.queue, 0);
+      let individualAvgQueue = agt.rideHistoryLog.length > 0 ? (totalQueueMins / agt.rideHistoryLog.length).toFixed(2) : 0;
+
+      let fullType = agt.type;
+      if (agt.priority) fullType += " (FastTrack)";
+
+      agentExportData.push({
+        id: agt.id,
+        type: fullType,
+        size: agt.size,
+        minHeight: agt.minHeightGroup,
+        totalRides: agt.rideHistoryLog.length,
+        individualAvgQueue: individualAvgQueue, // Data baru masuk!
+        entryTime: agt.entryTimeStr,
+        exitTime: exitTimeStr,
+        rideList: rideSequence || "Tidak naik apa-apa",
+        queueList: queueSequence || "-"
+      });
+    }
   }
 
   // 2. Bersihkan agen yang sudah keluar dari memori simulasi
@@ -1972,29 +2304,29 @@ function removeAgents() {
   // 3. Proses statistik agregat yang 100% Akurat secara Matematis
   for (let agt of exitedAgents) {
     if (agt.isSplitPart) {
-        // Abaikan pecahan grup, karena buku harian (rideHistoryLog) milik agen induk 
-        // sudah mencatat semua wahana yang dinaiki oleh seluruh anggota keluarganya!
-        continue; 
+      // Abaikan pecahan grup, karena buku harian (rideHistoryLog) milik agen induk 
+      // sudah mencatat semua wahana yang dinaiki oleh seluruh anggota keluarganya!
+      continue;
     }
-    
+
     let groupSize = agt.size || 1;
     let groupRides = agt.rideHistoryLog.length || 0;
-    
+
     // Total orang-wahana (Weighted by group size)
     totalRides += (groupRides * groupSize);
-    
+
     // Tarik total antrean riil dari buku harian agar tidak ada duplikasi pecahan grup
     let totalQueueMins = agt.rideHistoryLog.reduce((sum, r) => sum + r.queue, 0);
-    
+
     // Total orang-menit antrean
     totalTimeQueue += (totalQueueMins * groupSize);
-    
+
     totalTimeSpent += ((frameRunning - agt.enteredTime) / FRAME_RATE) * groupSize;
-    numExitedAgents += groupSize; 
-    
+    numExitedAgents += groupSize;
+
     if (groupRides > 0 || agt.agentState === AgentStates.EXITED) {
-       if (groupRides > maxRidesRecord) maxRidesRecord = groupRides;
-       if (groupRides < minRidesRecord) minRidesRecord = groupRides;
+      if (groupRides > maxRidesRecord) maxRidesRecord = groupRides;
+      if (groupRides < minRidesRecord) minRidesRecord = groupRides;
     }
   }
 }
@@ -2004,7 +2336,7 @@ function removeAgents() {
 
 let dashboardContainer = null;
 let dashboardCards = {};
-let lastDashboardUpdate = 0;
+let lastDashboardUpdate = -999;
 const DASHBOARD_UPDATE_INTERVAL = 0.5;
 
 function buildRideDashboard(parentEl) {
@@ -2017,9 +2349,12 @@ function buildRideDashboard(parentEl) {
   header.class("dashboard-header");
   header.parent(dash);
 
-  const title = createDiv("⚡ Live Ride Intelligence Board");
-  title.class("dashboard-title");
-  title.parent(header);
+  header.html(`
+    <div class="dashboard-header-inner">
+      <h2 class="dashboard-title">Live Ride Intelligence Board</h2>
+      <p class="dashboard-subtitle">Pemantauan status operasional wahana, estimasi antrean, dan parameter teori antrean M/M/1</p>
+    </div>
+  `);
 
   const grid = createDiv();
   grid.class("dashboard-grid");
@@ -2032,9 +2367,9 @@ function buildRideDashboard(parentEl) {
   footer.parent(dash);
 }
 
-function updateRideDashboard() {
+function updateRideDashboard(force = false) {
   if (!dashboardContainer || !simMap) return;
-  if (time - lastDashboardUpdate < DASHBOARD_UPDATE_INTERVAL) return;
+  if (!force && (time - lastDashboardUpdate < DASHBOARD_UPDATE_INTERVAL) && Object.keys(dashboardCards).length > 0) return;
   lastDashboardUpdate = time;
 
   const grid = select("#dashboard-grid");
@@ -2065,55 +2400,60 @@ function updateRideDashboard() {
 }
 
 function renderRideCard(cardEl, ride) {
-  const m = ride.getQueueMetrics ? ride.getQueueMetrics() : { rho:0, Lq:0, W:0, L:0, S:0, status:"N/A" };
+  const m = ride.getQueueMetrics ? ride.getQueueMetrics() : { rho: 0, Lq: 0, W: 0, L: 0, S: 0, status: "N/A" };
   const isOpen = ride.isOpen ? ride.isOpen() : true;
   const queueTime = ride.getQueueTime ? ride.getQueueTime() : 0;
   const rho = m.rho || 0;
 
-  let qColor = "#22c55e";
-  let barColor = "#22c55e";
-  if (queueTime >= 30)       { qColor = "#ef4444"; barColor = "#ef4444"; }
-  else if (queueTime >= 15)  { qColor = "#facc15"; barColor = "#facc15"; }
+  let qColor = "var(--positive)";
+  let barColor = "var(--positive)";
+  if (queueTime >= 30) { qColor = "var(--negative)"; barColor = "var(--negative)"; }
+  else if (queueTime >= 15) { qColor = "var(--warning)"; barColor = "var(--warning)"; }
 
-  let rhoColor = "#22c55e";
-  if (rho >= 0.9)       rhoColor = "#ef4444";
-  else if (rho >= 0.65) rhoColor = "#facc15";
+  let rhoColor = "var(--positive)";
+  let rhoHex = "#059669";
+  if (rho >= 0.9) { rhoColor = "var(--negative)"; rhoHex = "#e11d48"; }
+  else if (rho >= 0.65) { rhoColor = "var(--warning)"; rhoHex = "#d97706"; }
 
   const barPct = Math.min(100, (queueTime / 60) * 100);
   const qDisplay = ride.isContinuous
     ? `${ride.getCurrentOccupancy ? ride.getCurrentOccupancy() : 0}/${ride.capacity}`
     : `${queueTime}m`;
-  const qLabel = ride.isContinuous ? "OCCUPANCY" : "QUEUE TIME";
+  const qLabel = ride.isContinuous ? "OKUPANSI SIRKULASI" : "ESTIMASI WAKTU ANTRE";
 
-  const circumference = 2 * Math.PI * 12;
+  const circumference = 2 * Math.PI * 13;
   const dashOffset = circumference * (1 - Math.min(rho, 1));
-  const rhoRingSVG = `<svg width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="12" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="3"/>
-    <circle cx="16" cy="16" r="12" fill="none" stroke="${rhoColor}" stroke-width="3"
+  const rhoRingSVG = `<svg width="34" height="34" viewBox="0 0 34 34">
+    <circle cx="17" cy="17" r="13" fill="none" stroke="currentColor" opacity="0.12" stroke-width="3"/>
+    <circle cx="17" cy="17" r="13" fill="none" stroke="${rhoHex}" stroke-width="3"
       stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${dashOffset.toFixed(2)}"
-      stroke-linecap="round" transform="rotate(-90 16 16)"/>
+      stroke-linecap="round" transform="rotate(-90 17 17)"/>
   </svg>`;
 
-  const openStr = `${String(ride.openHour||10).padStart(2,'0')}:${String(ride.openMinute||0).padStart(2,'0')}`;
-  const closeStr = `${String(ride.closeHour||19).padStart(2,'0')}:${String(ride.closeMinute||0).padStart(2,'0')}`;
+  const openStr = `${String(ride.openHour || 10).padStart(2, '0')}:${String(ride.openMinute || 0).padStart(2, '0')}`;
+  const closeStr = `${String(ride.closeHour || 19).padStart(2, '0')}:${String(ride.closeMinute || 0).padStart(2, '0')}`;
 
   let cardClass = "ride-card";
   if (!isOpen) cardClass += " closed";
   else if (rho >= 0.9) cardClass += " overloaded";
 
   const rideName = ride.rideName || ride.name || "Ride";
+  const categoryName = (ride.rideCategory || 'umum').toUpperCase();
 
   cardEl.elt.className = cardClass;
   cardEl.elt.innerHTML = `
     <div class="card-header">
-      <div class="card-ride-name">${rideName}</div>
-      <div class="card-status-badge ${isOpen ? 'badge-open' : 'badge-closed'}">${isOpen ? '● OPEN' : '● CLOSED'}</div>
+      <div class="card-ride-name" title="${rideName}">${rideName}</div>
+      <div class="card-status-badge ${isOpen ? 'badge-open' : 'badge-closed'}">
+        <span class="status-dot"></span>
+        <span>${isOpen ? 'BUKA' : 'TUTUP'}</span>
+      </div>
     </div>
     <div class="card-meta">
-      <span class="meta-tag tag-zone">Z${ride.zone || 0}</span>
-      <span class="meta-tag tag-category">${(ride.rideCategory||'umum').toUpperCase()}</span>
-      ${ride.hasFastTrack ? '<span class="meta-tag tag-fasttrack">⚡ FT</span>' : ''}
-      ${ride.isContinuous ? '<span class="meta-tag tag-continuous">∞</span>' : ''}
+      <span class="meta-tag tag-zone">Zona ${ride.zone || 0}</span>
+      <span class="meta-tag tag-category">${categoryName}</span>
+      ${ride.hasFastTrack ? '<span class="meta-tag tag-fasttrack"><span class="icon">bolt</span>FT</span>' : ''}
+      ${ride.isContinuous ? '<span class="meta-tag tag-continuous"><span class="icon">all_inclusive</span>Sirkulasi</span>' : ''}
     </div>
     <div class="queue-section">
       <div class="queue-label-row">
@@ -2125,28 +2465,28 @@ function renderRideCard(cardEl, ride) {
       </div>
     </div>
     <div class="metrics-grid">
-      <div class="metric-item">
+      <div class="metric-item" title="Tingkat Utilisasi Server (ρ)">
         <div class="metric-label">ρ UTIL</div>
-        <div class="metric-value" style="color:${rhoColor}">${(rho*100).toFixed(0)}%</div>
+        <div class="metric-value" style="color:${rhoColor}">${(rho * 100).toFixed(0)}%</div>
       </div>
-      <div class="metric-item">
-        <div class="metric-label">Lq</div>
-        <div class="metric-value" style="color:#94a3b8">${m.Lq.toFixed(1)}</div>
+      <div class="metric-item" title="Panjang Antrean Teoretis (Lq)">
+        <div class="metric-label">Lq (Org)</div>
+        <div class="metric-value">${m.Lq.toFixed(1)}</div>
       </div>
-      <div class="metric-item">
-        <div class="metric-label">W(m)</div>
-        <div class="metric-value" style="color:#94a3b8">${m.W.toFixed(1)}</div>
+      <div class="metric-item" title="Waktu Tunggu Teoretis M/M/1 (W)">
+        <div class="metric-label">W (Menit)</div>
+        <div class="metric-value">${m.W.toFixed(1)}</div>
       </div>
     </div>
     <div class="card-footer">
-      <div>
-        <div class="footer-info">Capacity: <span>${ride.capacity}</span> &nbsp; RT: <span>${ride.runtime}m</span></div>
-        <div class="footer-info">Hours: <span>${openStr}–${closeStr}</span></div>
-        <div class="footer-info">Min Height: <span>${ride.minHeight > 0 ? ride.minHeight+'cm' : 'None'}</span></div>
+      <div class="footer-meta-col">
+        <div class="footer-info">Kapasitas: <span>${ride.capacity} org</span></div>
+        <div class="footer-info">Durasi: <span>${ride.runtime}m</span> &bull; <span>${openStr}–${closeStr}</span></div>
+        <div class="footer-info">Min Tinggi: <span>${ride.minHeight > 0 ? ride.minHeight + ' cm' : 'Bebas'}</span></div>
       </div>
-      <div class="rho-ring">
+      <div class="rho-ring" title="Rasio Utilisasi ρ: ${(rho * 100).toFixed(1)}%">
         ${rhoRingSVG}
-        <div class="rho-ring-label" style="color:${rhoColor}">${(rho*100).toFixed(0)}</div>
+        <div class="rho-ring-label" style="color:${rhoColor}">${(rho * 100).toFixed(0)}%</div>
       </div>
     </div>
   `;
@@ -2171,17 +2511,48 @@ function renderDashboardFooter(footerEl, rides) {
   const longestName = maxQRide ? (maxQRide.rideName || "—") : "—";
 
   footerEl.elt.innerHTML = `
-    <div class="dsb-item"><div class="dsb-label">Rides Open</div><div class="dsb-value green">${totalOpen}</div></div>
-    <div class="dsb-sep"></div>
-    <div class="dsb-item"><div class="dsb-label">Rides Closed</div><div class="dsb-value red">${totalClosed}</div></div>
-    <div class="dsb-sep"></div>
-    <div class="dsb-item"><div class="dsb-label">Avg Queue</div><div class="dsb-value">${avgQ}m</div></div>
-    <div class="dsb-sep"></div>
-    <div class="dsb-item"><div class="dsb-label">Longest Queue</div><div class="dsb-value orange small">${longestName}&nbsp;<em>(${maxQ}m)</em></div></div>
-    <div class="dsb-sep"></div>
-    <div class="dsb-item"><div class="dsb-label">Busiest (ρ)</div><div class="dsb-value orange small">${busiestName}&nbsp;<em>(${(busiestRho*100).toFixed(0)}%)</em></div></div>
-    <div class="dsb-sep"></div>
-    <div class="dsb-item"><div class="dsb-label">Total Rides</div><div class="dsb-value">${rides.length}</div></div>
+    <div class="dsb-item">
+      <div class="dsb-icon green"><span class="icon">check_circle</span></div>
+      <div class="dsb-content">
+        <div class="dsb-label">Wahana Buka</div>
+        <div class="dsb-value green">${totalOpen}</div>
+      </div>
+    </div>
+    <div class="dsb-item">
+      <div class="dsb-icon red"><span class="icon">cancel</span></div>
+      <div class="dsb-content">
+        <div class="dsb-label">Wahana Tutup</div>
+        <div class="dsb-value red">${totalClosed}</div>
+      </div>
+    </div>
+    <div class="dsb-item">
+      <div class="dsb-icon blue"><span class="icon">timer</span></div>
+      <div class="dsb-content">
+        <div class="dsb-label">Rata-rata Antrean</div>
+        <div class="dsb-value">${avgQ}m</div>
+      </div>
+    </div>
+    <div class="dsb-item">
+      <div class="dsb-icon orange"><span class="icon">hourglass_top</span></div>
+      <div class="dsb-content">
+        <div class="dsb-label">Antrean Terpanjang</div>
+        <div class="dsb-value orange small">${longestName}&nbsp;<em>(${maxQ}m)</em></div>
+      </div>
+    </div>
+    <div class="dsb-item">
+      <div class="dsb-icon amber"><span class="icon">local_fire_department</span></div>
+      <div class="dsb-content">
+        <div class="dsb-label">Utilisasi Tertinggi (ρ)</div>
+        <div class="dsb-value amber small">${busiestName}&nbsp;<em>(${(busiestRho * 100).toFixed(0)}%)</em></div>
+      </div>
+    </div>
+    <div class="dsb-item">
+      <div class="dsb-icon purple"><span class="icon">attractions</span></div>
+      <div class="dsb-content">
+        <div class="dsb-label">Total Wahana</div>
+        <div class="dsb-value">${rides.length}</div>
+      </div>
+    </div>
   `;
 }
 
@@ -2195,20 +2566,36 @@ function buildFooter(parentEl) {
 
   footer.html(`
     <div class="pf-inner">
-      <div class="pf-brand">
-        <span class="pf-logo">🎢</span>
-        <span class="pf-name">Theme Park Simulator</span>
+      <div class="pf-top">
+        <div class="pf-brand-col">
+          <div class="pf-brand">
+            <img src="dufan-logo-kit/master/dufan-symbol-color.svg" alt="DUFAN Logo" class="pf-logo-img" width="36" height="36">
+            <div class="pf-brand-text">
+              <span class="pf-name">DUFAN Simulator</span>
+              <span class="pf-tagline">Theme Park Crowd & Queue Dynamics</span>
+            </div>
+          </div>
+          <p class="pf-desc">
+            Simulasi antrian pengunjung taman hiburan Dunia Fantasi berbasis agen (Agent-Based Simulation)
+            menggunakan pemodelan teori antrean M/M/1 serta analisis perbandingan strategi routing dinamis.
+          </p>
+        </div>
+        <div class="pf-actions">
+          <button class="pf-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Kembali ke Atas">
+            <span class="icon">arrow_upward</span>
+            <span>Kembali ke Atas</span>
+          </button>
+        </div>
       </div>
-      <div class="pf-desc">
-        Simulasi antrian pengunjung taman hiburan Dufan berbasis agen (Agent-Based Simulation)
-        menggunakan model teori antrian M/M/1 dengan algoritma Hierarchical Routing &amp; PWT.
-      </div>
-      <div class="pf-credits">
+
+      <div class="pf-divider"></div>
+
+      <div class="pf-bottom">
         <div class="pf-team">
           <span class="pf-credit-label">Tim Pengembang</span>
-          <span class="pf-credit-names">Teknik Industri — Simulasi Sistem 2025</span>
+          <span class="pf-credit-names">Tim Sayang Lomba Sayaangg</span>
         </div>
-        <div class="pf-copy">© 2025 Theme Park Sim. All rights reserved.</div>
+        <div class="pf-copy">© 2026 DUFAN Simulator. All rights reserved.</div>
       </div>
     </div>
   `);
@@ -2227,7 +2614,7 @@ const LOD_TIER3_THRESHOLD = 5000;
 // Heatmap config
 const HM_CELL = 24;           // cell size in px
 const HM_COLS = Math.ceil(1280 / HM_CELL);
-const HM_ROWS = Math.ceil(640  / HM_CELL);
+const HM_ROWS = Math.ceil(640 / HM_CELL);
 
 // Pre-allocate heatmap buffer (flat array, reused every frame)
 let hmGrid = new Float32Array(HM_COLS * HM_ROWS);
@@ -2341,7 +2728,7 @@ function drawHeatmap(agentList) {
       if (t < 0.25) {
         // blue → cyan
         const s = t / 0.25;
-        r = 0;  g = Math.round(s * 200); b = 255; a = 60 + s * 80;
+        r = 0; g = Math.round(s * 200); b = 255; a = 60 + s * 80;
       } else if (t < 0.5) {
         // cyan → green
         const s = (t - 0.25) / 0.25;
@@ -2384,10 +2771,10 @@ function drawHeatmapLegend(totalAgents, maxDensity) {
   for (let i = 0; i < steps; i++) {
     const t = i / (steps - 1);
     let r, g, b;
-    if (t < 0.25)      { const s=t/0.25;      r=0;   g=Math.round(s*200); b=255; }
-    else if (t < 0.5)  { const s=(t-0.25)/0.25; r=0;   g=200; b=Math.round(255*(1-s)); }
-    else if (t < 0.75) { const s=(t-0.5)/0.25;  r=Math.round(s*255); g=210; b=0; }
-    else               { const s=(t-0.75)/0.25;  r=255; g=Math.round(210*(1-s)); b=0; }
+    if (t < 0.25) { const s = t / 0.25; r = 0; g = Math.round(s * 200); b = 255; }
+    else if (t < 0.5) { const s = (t - 0.25) / 0.25; r = 0; g = 200; b = Math.round(255 * (1 - s)); }
+    else if (t < 0.75) { const s = (t - 0.5) / 0.25; r = Math.round(s * 255); g = 210; b = 0; }
+    else { const s = (t - 0.75) / 0.25; r = 255; g = Math.round(210 * (1 - s)); b = 0; }
     fill(r, g, b, 220);
     rect(lx + (lw / steps) * i, ly, lw / steps + 1, lh);
   }
@@ -2401,14 +2788,14 @@ function drawHeatmapLegend(totalAgents, maxDensity) {
   text(Math.round(maxDensity), lx + lw, ly + lh + 3);
   textAlign(CENTER, TOP);
   fill(56, 189, 248);
-  text("density / cell", lx + lw/2, ly + lh + 3);
+  text("density / cell", lx + lw / 2, ly + lh + 3);
 
   // Title
   fill(56, 189, 248, 180);
   textSize(8);
   textStyle(BOLD);
   textAlign(CENTER, BOTTOM);
-  text("HEATMAP MODE", lx + lw/2, ly - 4);
+  text("HEATMAP MODE", lx + lw / 2, ly - 4);
 
   pop();
 }

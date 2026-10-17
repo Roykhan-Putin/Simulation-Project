@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="stacked-title">
+  <title id="stacked-title">DUFAN Logo - Stacked Color</title>
+  <!-- Symbol scaled to 230x230, centered at (141, 50) -->
+  <g id="symbol" transform="translate(141, 44) scale(0.8984)">
+    <path fill="#0072F5" fill-rule="evenodd" d="M 64 36
+    L 132 36
+    C 188 36 216 76 216 128
+    C 216 180 188 220 132 220
+    L 64 220
+    A 24 24 0 0 1 40 196
+    L 40 60
+    A 24 24 0 0 1 64 36
+    Z
+    M 90 118
+    C 112 118 140 118 170 118
+    C 172 118 174 122 172 126
+    C 158 168 124 178 90 178
+    C 87 178 84 175 84 171
+    L 84 125
+    C 84 120 87 118 90 118
+    Z"/>
+    <path fill="#FFB800" d="M 132 58
+    Q 132 78 112 78
+    Q 132 78 132 98
+    Q 132 78 152 78
+    Q 132 78 132 58
+    Z"/>
+  </g>
+  <!-- Wordmark scaled by 0.76 (width ≈ 324), centered at x=94, y=260 -->
+  <g id="wordmark" fill="#0F172A" transform="translate(94, 260) scale(0.76)">
+    <path d="M 0 80 L 38 80 C 62 80 74 94 74 128 C 74 162 62 176 38 176 L 0 176 Z M 20 98 L 20 158 L 36 158 C 48 158 54 148 54 128 C 54 108 48 98 36 98 Z"/>
+    <path d="M 92 80 L 112 80 L 112 144 C 112 154 118 160 126 160 C 134 160 140 154 140 144 L 140 80 L 160 80 L 160 144 C 160 164 148 176 126 176 C 104 176 92 164 92 144 Z"/>
+    <path d="M 180 80 L 242 80 L 242 98 L 200 98 L 200 120 L 236 120 L 236 138 L 200 138 L 200 176 L 180 176 Z"/>
+    <path d="M 297 80 L 319 80 L 344 176 L 322 176 L 316 152 L 278 152 L 272 176 L 250 176 Z M 283 134 L 311 134 L 297 98 Z"/>
+    <path d="M 354 80 L 374 80 L 406 148 L 406 80 L 426 80 L 426 176 L 406 176 L 374 108 L 374 176 L 354 176 Z"/>
+  </g>
+</svg>

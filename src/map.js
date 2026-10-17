@@ -164,195 +164,296 @@ class SimMap {
   }
 
 drawMap(creatorMode) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-  // ===== DRAW PATHS — Blueprint style =====
-  // Shadow/glow pass
-  stroke(0, 120, 255, 25);
-  strokeWeight(7);
+  // ===== 1. DRAW PATHWAYS / PROMENADES =====
+  // Base ambient shadow for all walkways
+  stroke(isDark ? color(0, 0, 0, 90) : color(0, 0, 0, 22));
+  strokeWeight(12);
   for (const edge of this.edges) {
     line(edge[0][0], edge[0][1], edge[1][0], edge[1][1]);
   }
-  // Main path line
-  stroke(56, 140, 255, 130);
-  strokeWeight(2);
+
+  // Walkway outer curb / edging
+  stroke(isDark ? color(48, 54, 72) : color(208, 204, 216));
+  strokeWeight(9);
   for (const edge of this.edges) {
     line(edge[0][0], edge[0][1], edge[1][0], edge[1][1]);
   }
-  // Dashed overlay for blueprint feel
-  drawingContext.setLineDash([6, 6]);
-  stroke(120, 190, 255, 40);
+
+  // Walkway main surface (warm travertine in light, slate graphite in dark)
+  stroke(isDark ? color(34, 38, 52) : color(240, 237, 244));
+  strokeWeight(6);
+  for (const edge of this.edges) {
+    line(edge[0][0], edge[0][1], edge[1][0], edge[1][1]);
+  }
+
+  // Pavement decorative centerline (subtle M3 primary accent)
+  stroke(isDark ? color(188, 194, 255, 45) : color(63, 81, 181, 40));
   strokeWeight(1);
   for (const edge of this.edges) {
     line(edge[0][0], edge[0][1], edge[1][0], edge[1][1]);
   }
-  drawingContext.setLineDash([]);
 
-  // ===== DRAW NODES =====
+  // ===== 2. DRAW NODES =====
   for (const node of this.nodes) {
 
     if (creatorMode) {
-      stroke(100, 180, 255);
+      stroke(isDark ? 188 : 63, isDark ? 194 : 81, isDark ? 255 : 181);
       strokeWeight(2);
       fill(node.fill);
-      circle(node.x, node.y, NODE_RADIUS);
+      circle(node.x, node.y, NODE_RADIUS * 2);
 
     } else {
 
       if (node.type === "entrance") {
-        // Entrance — glowing star/gate marker
+        // ===== GRAND ENTRANCE PORTAL =====
         push();
-        // Outer glow ring
-        noFill();
-        stroke(255, 200, 0, 30);
-        strokeWeight(6);
-        circle(node.x, node.y, 34);
-        stroke(255, 200, 0, 60);
-        strokeWeight(2);
-        circle(node.x, node.y, 22);
-        // Icon: gate arch
-        fill(255, 210, 0);
+        const ex = node.x;
+        const ey = node.y;
+
+        // Welcome Plaza radial paved rings
         noStroke();
+        fill(255, 179, 0, isDark ? 20 : 15);
+        circle(ex, ey, 66);
+        fill(255, 179, 0, isDark ? 40 : 30);
+        circle(ex, ey, 46);
+
+        // Plaza outer rim
+        stroke(255, 193, 7, 140);
+        strokeWeight(1.5);
+        fill(isDark ? color(32, 28, 20) : color(255, 250, 240));
+        circle(ex, ey, 32);
+
+        // Golden portal disc
+        noStroke();
+        fill(255, 179, 0);
+        circle(ex, ey, 22);
+
+        // Turnstile / Gate Icon
+        fill(0);
         textAlign(CENTER, CENTER);
-        textSize(16);
-        text("🚪", node.x, node.y - 4);
-        // Label
-        fill(255, 210, 0, 200);
+        textSize(12);
+        textStyle(BOLD);
+        text("⛩", ex, ey - 0.5);
+
+        // "GERBANG UTAMA" M3 Badge
+        const badgeW = 76;
+        const badgeH = 16;
+        const badgeY = ey + 18;
+        fill(isDark ? color(24, 23, 28, 230) : color(255, 255, 255, 240));
+        stroke(255, 179, 0, 180);
+        strokeWeight(1);
+        rect(ex - badgeW / 2, badgeY, badgeW, badgeH, 8);
+
+        noStroke();
+        fill(isDark ? 255 : 20);
         textSize(8);
         textStyle(BOLD);
-        text("ENTRANCE", node.x, node.y + 14);
+        text("PINTU MASUK", ex, badgeY + badgeH / 2);
         pop();
 
       } else if (node.type === "junc") {
-        // Junction — small blueprint crosshair dot
+        // ===== JUNCTION WAYPOINT PLAZA =====
         push();
-        stroke(56, 140, 255, 100);
+        noStroke();
+        fill(isDark ? color(188, 194, 255, 50) : color(63, 81, 181, 40));
+        circle(node.x, node.y, 14);
+
+        stroke(isDark ? color(255, 255, 255, 40) : color(0, 0, 0, 25));
         strokeWeight(1);
-        noFill();
+        fill(isDark ? color(36, 40, 56) : color(245, 243, 250));
         circle(node.x, node.y, 8);
-        stroke(56, 140, 255, 60);
-        line(node.x - 5, node.y, node.x + 5, node.y);
-        line(node.x, node.y - 5, node.x, node.y + 5);
+
+        noStroke();
+        fill(isDark ? color(188, 194, 255) : color(63, 81, 181));
+        circle(node.x, node.y, 3.5);
         pop();
 
       } else if (node.type === "ride") {
-        // ===== CIRCUS TENT ICON (drawn in p5.js) =====
+        // ===== MATERIAL 3 ELEVATED RIDE PEDESTAL =====
         push();
         const cx = node.x;
-        const cy = node.y - 10;
+        const cy = node.y;
         const isOpen = node.isOpen();
         const queueTime = node.getQueueTime();
+        const isHovered = dist(cx, cy, mouseX, mouseY) < 26;
 
-        // Pick tent colors based on status
-        let tentColor1, tentColor2, glowColor;
-        if (!isOpen) {
-          tentColor1 = color(80, 80, 90);
-          tentColor2 = color(55, 55, 65);
-          glowColor  = color(100, 100, 110, 0);
-        } else if (queueTime >= 30) {
-          tentColor1 = color(220, 50, 50);
-          tentColor2 = color(255, 100, 60);
-          glowColor  = color(220, 50, 50, 30);
-        } else if (queueTime >= 15) {
-          tentColor1 = color(220, 160, 20);
-          tentColor2 = color(255, 210, 60);
-          glowColor  = color(220, 160, 20, 25);
+        // Determine category theme color
+        let catColor;
+        if (node.rideCategory === "dewasa") {
+          catColor = color(244, 63, 94); // Crimson / Coral for Thrill
+        } else if (node.rideCategory === "anak-anak") {
+          catColor = color(16, 185, 129); // Emerald for Kids
         } else {
-          tentColor1 = color(30, 160, 90);
-          tentColor2 = color(60, 220, 130);
-          glowColor  = color(30, 160, 90, 25);
+          catColor = color(56, 189, 248); // Azure / Sky for General/Family
         }
 
-        // Glow behind tent
-        noStroke();
-        fill(glowColor);
-        circle(cx, cy, 38);
+        // Hover halo glow
+        if (isHovered) {
+          noFill();
+          stroke(red(catColor), green(catColor), blue(catColor), 160);
+          strokeWeight(2);
+          circle(cx, cy, 50);
+          fill(red(catColor), green(catColor), blue(catColor), 25);
+          noStroke();
+          circle(cx, cy, 48);
+        }
 
-        // Blueprint node ring
+        // Ambient drop shadow for the ride pedestal
+        noStroke();
+        fill(0, 0, 0, isDark ? 110 : 35);
+        circle(cx + 1, cy + 2, 38);
+
+        // Pedestal base disc
+        if (isDark) {
+          fill(28, 27, 34);
+          stroke(red(catColor), green(catColor), blue(catColor), isOpen ? 170 : 60);
+        } else {
+          fill(255, 255, 255);
+          stroke(red(catColor), green(catColor), blue(catColor), isOpen ? 190 : 70);
+        }
+        strokeWeight(1.8);
+        circle(cx, cy, 34);
+
+        // Inner decorative ring
         noFill();
-        stroke(56, 140, 255, isOpen ? 80 : 30);
+        stroke(red(catColor), green(catColor), blue(catColor), isOpen ? 60 : 25);
         strokeWeight(1);
-        circle(cx, cy + 10, 44);
+        circle(cx, cy, 28);
 
-        // --- Draw circus tent ---
-        // Base platform
-        fill(red(tentColor1)*0.5, green(tentColor1)*0.5, blue(tentColor1)*0.5, 200);
-        noStroke();
-        rect(cx - 13, cy + 6, 26, 5, 2);
-
-        // Tent body (trapezoid using quad)
-        fill(tentColor1);
-        stroke(red(tentColor1)+30, green(tentColor1)+30, blue(tentColor1)+30, 180);
-        strokeWeight(0.5);
-        quad(cx - 13, cy + 6,  cx + 13, cy + 6,  cx + 8, cy - 4,  cx - 8, cy - 4);
-
-        // Alternating stripe panels
-        fill(tentColor2);
-        noStroke();
-        // Left stripe
-        beginShape();
-        vertex(cx - 13, cy + 6);
-        vertex(cx - 7, cy + 6);
-        vertex(cx - 4.5, cy - 4);
-        vertex(cx - 8, cy - 4);
-        endShape(CLOSE);
-        // Center stripe
-        beginShape();
-        vertex(cx - 2, cy + 6);
-        vertex(cx + 4, cy + 6);
-        vertex(cx + 2.5, cy - 4);
-        vertex(cx - 1, cy - 4);
-        endShape(CLOSE);
-        // Right stripe
-        beginShape();
-        vertex(cx + 7, cy + 6);
-        vertex(cx + 13, cy + 6);
-        vertex(cx + 8, cy - 4);
-        vertex(cx + 5, cy - 4);
-        endShape(CLOSE);
-
-        // Tent roof (triangle)
-        fill(tentColor2);
-        stroke(red(tentColor2)*0.7, green(tentColor2)*0.7, blue(tentColor2)*0.7);
-        strokeWeight(0.5);
-        triangle(cx - 9, cy - 3,  cx + 9, cy - 3,  cx, cy - 14);
-
-        // Roof stripe
-        fill(tentColor1);
-        noStroke();
-        triangle(cx - 2, cy - 3,  cx + 4, cy - 3,  cx + 1, cy - 14);
-
-        // Flagpole
-        stroke(200, 200, 210);
-        strokeWeight(1);
-        line(cx, cy - 14, cx, cy - 21);
-
-        // Flag
-        noStroke();
-        fill(tentColor2);
-        triangle(cx, cy - 21,  cx + 7, cy - 18,  cx, cy - 15);
-
-        // Door
-        fill(10, 15, 30, 200);
-        noStroke();
-        rect(cx - 3, cy + 1, 6, 5, 1, 1, 0, 0);
-
-        // Ride name label
-        noStroke();
-        const labelBg = color(6, 14, 32, 200);
-        fill(labelBg);
-        const rName = node.rideName || "";
-        textSize(8);
-        const lw = textWidth(rName) + 8;
-        rect(cx - lw/2, cy + 14, lw, 11, 3);
-        fill(isOpen ? color(180, 230, 255) : color(130, 130, 140));
+        // --- RIDE ICON GLYPH (Category/Ride-Specific) ---
+        push();
         textAlign(CENTER, CENTER);
-        textStyle(BOLD);
-        text(rName, cx, cy + 20);
+        const rName = node.rideName || "";
 
+        if (!isOpen) {
+          fill(isDark ? 130 : 150);
+          textSize(13);
+          textStyle(BOLD);
+          text("✕", cx, cy);
+        } else if (rName.includes("Halilintar") || rName.includes("Tornado") || rName.includes("Hysteria") || rName.includes("Alap") || rName.includes("Kereta Misteri")) {
+          // Thrill / Coaster glyph
+          stroke(catColor);
+          strokeWeight(1.5);
+          noFill();
+          arc(cx - 3, cy + 1, 14, 14, -PI * 0.75, PI * 0.5);
+          line(cx - 7, cy + 5, cx + 7, cy - 5);
+        } else if (rName.includes("Arung") || rName.includes("Niagara") || rName.includes("Kontiki") || rName.includes("Karavel")) {
+          // Water ride wave glyph
+          stroke(catColor);
+          strokeWeight(1.5);
+          noFill();
+          arc(cx - 4, cy, 8, 6, 0, PI);
+          arc(cx + 4, cy, 8, 6, 0, PI);
+        } else if (rName.includes("Biang Lala")) {
+          // Ferris wheel glyph
+          stroke(catColor);
+          strokeWeight(1);
+          noFill();
+          circle(cx, cy, 14);
+          line(cx - 6, cy, cx + 6, cy);
+          line(cx, cy - 6, cx, cy + 6);
+          line(cx - 4, cy - 4, cx + 4, cy + 4);
+          line(cx - 4, cy + 4, cx + 4, cy - 4);
+        } else if (rName.includes("Turangga") || rName.includes("Poci") || rName.includes("Ontang")) {
+          // Carousel canopy glyph
+          stroke(catColor);
+          strokeWeight(1.3);
+          noFill();
+          triangle(cx - 7, cy + 2, cx + 7, cy + 2, cx, cy - 6);
+          line(cx - 7, cy + 2, cx + 7, cy + 2);
+        } else if (rName.includes("Istana Boneka") || rName.includes("Rumah") || rName.includes("Ice Age")) {
+          // Castle turret / whimsical show
+          stroke(catColor);
+          strokeWeight(1.3);
+          noFill();
+          rect(cx - 6, cy - 3, 12, 8, 1);
+          triangle(cx - 5, cy - 3, cx + 5, cy - 3, cx, cy - 8);
+        } else {
+          // General star / attraction spark
+          fill(catColor);
+          noStroke();
+          circle(cx, cy, 6);
+          stroke(catColor);
+          strokeWeight(1.2);
+          line(cx - 6, cy, cx + 6, cy);
+          line(cx, cy - 6, cx, cy + 6);
+        }
         pop();
 
-        // Queue bar (kept from original)
-        drawRideOverlay(node);
+        // --- FAST TRACK BADGE (⚡) ---
+        if (node.hasFastTrack) {
+          push();
+          const ftx = cx + 12;
+          const fty = cy - 12;
+          fill(245, 158, 11);
+          noStroke();
+          circle(ftx, fty, 13);
+          fill(0);
+          textSize(8);
+          textAlign(CENTER, CENTER);
+          textStyle(BOLD);
+          text("⚡", ftx, fty);
+          pop();
+        }
+
+        // --- WAIT TIME MINI CHIP (Floating Top Badge) ---
+        push();
+        const chipY = cy - 23;
+        let chipBg, chipFg, chipTxt;
+
+        if (!isOpen) {
+          chipBg = isDark ? color(60, 20, 20) : color(254, 226, 226);
+          chipFg = color(220, 38, 38);
+          chipTxt = "TUTUP";
+        } else if (queueTime < 15) {
+          chipBg = isDark ? color(20, 50, 35) : color(220, 252, 231);
+          chipFg = isDark ? color(74, 222, 128) : color(22, 163, 74);
+          chipTxt = `${Math.round(queueTime)}m`;
+        } else if (queueTime < 30) {
+          chipBg = isDark ? color(60, 45, 15) : color(254, 243, 199);
+          chipFg = isDark ? color(251, 191, 36) : color(180, 83, 9);
+          chipTxt = `${Math.round(queueTime)}m`;
+        } else {
+          chipBg = isDark ? color(70, 25, 25) : color(254, 226, 226);
+          chipFg = isDark ? color(248, 113, 113) : color(220, 38, 38);
+          chipTxt = `${Math.round(queueTime)}m`;
+        }
+
+        textSize(8);
+        textStyle(BOLD);
+        const ctw = textWidth(chipTxt) + 10;
+        fill(chipBg);
+        stroke(chipFg);
+        strokeWeight(0.8);
+        rect(cx - ctw / 2, chipY, ctw, 12, 6);
+
+        noStroke();
+        fill(chipFg);
+        textAlign(CENTER, CENTER);
+        text(chipTxt, cx, chipY + 6);
+        pop();
+
+        // --- RIDE NAME LABEL PILL (Bottom) ---
+        push();
+        const lblY = cy + 20;
+        textSize(8);
+        textStyle(BOLD);
+        const lw = textWidth(rName) + 10;
+
+        fill(isDark ? color(20, 19, 24, 230) : color(255, 255, 255, 240));
+        stroke(isDark ? color(255, 255, 255, 25) : color(0, 0, 0, 20));
+        strokeWeight(1);
+        rect(cx - lw / 2, lblY, lw, 13, 4);
+
+        noStroke();
+        fill(isDark ? (isOpen ? color(230, 225, 235) : color(140, 135, 145)) : (isOpen ? color(28, 27, 32) : color(120, 115, 125)));
+        textAlign(CENTER, CENTER);
+        text(rName, cx, lblY + 6.5);
+        pop();
+
+        pop();
       }
     }
   }
@@ -431,9 +532,9 @@ class MapNode {
     this.typeIndex = NODE_TYPES.findIndex(t => t === this.type);
 
     const MAP_SCALE_X = 0.78; 
-    const MAP_SCALE_Y = 0.6; 
+    const MAP_SCALE_Y = 0.58; 
     const OFFSET_X = 280; 
-    const OFFSET_Y = 40; 
+    const OFFSET_Y = 48; 
 
     this.x = (x * WIDTH * MAP_SCALE_X) + OFFSET_X;
     this.y = (y * HEIGHT * MAP_SCALE_Y) + OFFSET_Y;

@@ -1,19 +1,42 @@
 <!DOCTYPE html>
-<html>
-<title>Theme Park Simulation — Hierarchical Routing | DUFAN</title>
+<html lang="id">
+
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DUFAN Simulator — Hierarchical Routing</title>
+  <link rel="icon" href="dufan-logo-kit/web-icons/favicon.ico" sizes="48x48">
+  <link rel="icon" href="dufan-logo-kit/web-icons/dufan-favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="dufan-logo-kit/web-icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0072F5">
+
+  <!-- Theme init script (preserves selected theme from landing page) -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('theme');
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+
+  <!-- Google Fonts: Roboto & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎢</text></svg>">
-  <script src="lib/p5.min.js"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
+    rel="stylesheet">
+
   <link rel="stylesheet" href="css/style.css" />
+  <script src="lib/p5.min.js"></script>
 </head>
+
 <body>
-  <h1></h1>
   <div id="canvas-container"></div>
   <script type="text/javascript" src="src/utility.js"></script>
   <script type="text/javascript" src="src/map.js"></script>
   <script type="text/javascript" src="src/agent.js"></script>
   <script type="text/javascript" src="src/main.js"></script>
 </body>
+
 </html>

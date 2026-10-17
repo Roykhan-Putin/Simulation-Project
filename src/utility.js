@@ -1,6 +1,6 @@
 // constants
 const WIDTH = 1280;
-const HEIGHT = 640;
+const HEIGHT = 820;
 
 const AGENT_RADIUS = 7;
 const NODE_RADIUS = 10;
